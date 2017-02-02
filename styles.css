@@ -39,3 +39,7 @@
   padding-left: 0;
   padding-right: 0;
 }
+
+.tab-pane > p {
+  margin-top: 20px;
+}

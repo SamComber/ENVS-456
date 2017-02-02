@@ -51,8 +51,8 @@ server <- function(input, output, session) {
   
   output$map <- renderLeaflet({
     
-    withProgress(message = 'Loading Map Data',
-                 detail = 'Please be patient this may take a few seconds...', value = 0, {
+    withProgress(message = 'Rendering Map Data',
+                 detail = 'this may take a few seconds...', value = 0, {
                    for (i in 1:60) {
                      incProgress(1/60)
                      Sys.sleep(0.25)
