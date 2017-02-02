@@ -24,17 +24,19 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                         leafletOutput("map", width = "100%"),
                         
                         absolutePanel(id="controls", class = "panel panel-default", fixed = TRUE,
-                                      draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
-                                      width = 330, height = "auto",
-                                      
-                                      h2("Data controller"),
-                                      # sliderInput("daterange", "Date range: ", min(as.numeric(document$month)), max(as.numeric(document$month)), value = range(as.numeric(document$month))),
-                                      plotOutput("crimescatter", height = 200)
-                                      )
+                          draggable = TRUE, top = 60, left = "auto", right = 20, bottom = "auto",
+                          width = 330, height = "auto",
+                          
+                          h2("Data controller"),
+                          # sliderInput("daterange", "Date range: ", min(as.numeric(document$month)), max(as.numeric(document$month)), value = range(as.numeric(document$month))),
+                          plotOutput("crimescatter", height = 400)
+                        )
                     )
             ),
            
            tabPanel("Data explorer", 
+                    p("The data explorer tab displays the tabulation of crime occurences in Liverpool. Search functionality allows
+                      a user to filter a location by road name to count the number of crimes."),
                     DT::dataTableOutput("crimetable"),
                     hr()
                     )
