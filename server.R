@@ -7,24 +7,20 @@ library(DT)
 
 # dates = c("2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11")
 # dates = c("2016-11")
-# 
-# for (month in dates) {
-#   url = sprintf("https://data.police.uk/api/crimes-street/all-crime?poly=53.5803,-2.6882:53.5803,-2.6882:53.2307,-3.2389:53.2307,-3.2389&date=%s", month)
-#   r <- GET(url)
-#   json <- content(r, "text")
-#   
-#   document <- fromJSON(txt=json)
-# }
 
-# res <- lapply(dates, function(month) {
-#   url = sprintf("https://data.police.uk/api/crimes-street/all-crime?poly=53.5803,-2.6882:53.5803,-2.6882:53.2307,-3.2389:53.2307,-3.2389&date=%s", month)
-#   r <- GET(url)
-#   json <- content(r, "text")
-#   
-#   fromJSON(txt=json)
-# })
-# 
-# do.call(rbind, res)
+
+dates = c("2015-12", "2016-01")
+
+
+document <- lapply(dates, function(month) {
+  url = sprintf("https://data.police.uk/api/crimes-street/all-crime?poly=53.5803,-2.6882:53.5803,-3.2389:53.2307,-2.6882:53.2307,-3.2389&date=%s", month)
+  r <- GET(url)
+  json <- content(r, "text")
+  fromJSON(txt=json)
+})
+
+do.call(rbind, document)
+
 
 # intersection for liverpool geojson
 
