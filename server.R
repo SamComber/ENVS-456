@@ -7,77 +7,55 @@ library(DT)
 library(rgdal)
 library(RJSONIO)
 library(downloader)
-library(RCurl)
-devtools::install_github("njtierney/ukpolice")
-library(ukpolice)
-
-u <- "http://statistics.data.gov.uk/boundaries/E08000012.json"
-downloader::download(url = u, destfile = "/tmp/lpool.geojson")
-lpool <- readOGR(dsn = "/tmp/lpool.geojson", layer = "OGRGeoJSON")
-lpool <- lpool@polygons[[1]]@Polygons[[1]]@coords
-lpool.co <- data.frame(lat = lpool[,2], long = lpool[,1] )
-
-# lpool_poly <- ukp_crime_poly(lpool.co)
-# 
-# 
-# 
-# poly_df_3 <- data.frame(lat = c(53.45862, 53.40135, 53.34943,53.34461),
-#                         long = c(-2.89155,-3.10132, -2.91164,-2.71371))
-# 
-# d1 <- ukp_crime_poly(poly_df_3, date = "2016-09")
-# d2 <- ukp_crime_poly(poly_df_3, date = "2016-10")
-# 
-# str(d)
-
-# get polygon bound
-
-# sample 1000 inside lappy
-
-curl.string <- paste0(paste0(sprintf('%s,%s',lpool[,2], lpool[,1]), collapse = ':'),'&date=2013-01')
-
-json <- '{"poly":"52.268,0.543:52.794,0.238:52.130,0.478","date":"2013-01"}'
-
-json <- paste0('{"poly":"',curl.string,'","date":"2016-10"}')
-r <- POST("https://data.police.uk/api/crimes-street/all-crime", body = json, encode = "json")
-r <- httr::POST("https://data.police.uk/api/crimes-street/all-crime", body = "{'poly':'52.268,0.543:52.794,0.238:52.130,0.478','date':'2013-01'}", encode = "json", verbose()) # the default
-
-
-
-js <- toJSON(tmp)
-isValidJSON(json, TRUE)
-
-# dates = c("2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11")
-# dates = c("2016-11", "2016-10")
-# 
-# document <- lapply(dates, function(month) {
-#   url = sprintf("https://data.police.uk/api/crimes-street/all-crime?poly=53.5803,-2.6882:53.5803,-3.2389:53.2307,-2.6882:53.2307,-3.2389&date=%s", month)
-#   r <- GET(url)
-#   json <- content(r, "text")
-#   jsonlite::fromJSON(txt=json)
-# })
-# 
-# 
-# document[[1]][sample(nrow(document[[1]]), 1000), ]
-# 
-# document[sample(nrow(document), 3), ]
-# 
-# do.call(rbind, document)
-
-
 
 server <- function(input, output, session) {
+
+  # download geojson
+  u <- "http://statistics.data.gov.uk/boundaries/E08000012.json"
+  downloader::download(url = u, destfile = "/tmp/lpool.geojson")
+  lpool <- readOGR(dsn = "/tmp/lpool.geojson", layer = "OGRGeoJSON")
+  # access coords slot
+  lpool <- lpool@polygons[[1]]@Polygons[[1]]@coords
+  # build lat/lon + date string to send with postrequest
+  curl.string <- paste0('poly=',paste0(sprintf('%s,%s',lpool[,2], lpool[,1]), collapse = ':'))
+  
+  dates = c("2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11")
+
+  document <- lapply(dates, function(month) {
+    # format acceptable packet for http request
+    curl.string <- list(poly=c(curl.string), date=c(month))
+    # post custom polygon to police api (note: post needed as appending curl string to url is too long)
+    r <- httr::POST("https://data.police.uk/api/crimes-street/all-crime", body = curl.string, encode="multipart", verbose())
+    json <- content(r, "text")
+    jsonlite::fromJSON(txt=json)
+  })
+  
+  master <- data.frame(id=numeric(0), category=character(0), latitude=character(0), longitude=character(0), month=character(0), outcome_status=character(0))
+  d1 <- data.frame(category=document[[1]]$category,lon=document[[1]]$location$latitude, lat=document[[1]]$location$longitude, id=document[[1]]$id, name=document[[1]]$location$street$name, month=document[[1]]$month, outcome_status=document[[1]]$outcome_status$category)
+  d2 <- data.frame(category=document[[2]]$category,lon=document[[2]]$location$latitude, lat=document[[2]]$location$longitude, id=document[[2]]$id, name=document[[2]]$location$street$name, month=document[[2]]$month, outcome_status=document[[2]]$outcome_status$category)
+  d3 <- data.frame(category=document[[3]]$category,lon=document[[3]]$location$latitude, lat=document[[3]]$location$longitude, id=document[[3]]$id, name=document[[3]]$location$street$name, month=document[[3]]$month, outcome_status=document[[3]]$outcome_status$category)
+  d4 <- data.frame(category=document[[4]]$category,lon=document[[4]]$location$latitude, lat=document[[4]]$location$longitude, id=document[[4]]$id, name=document[[4]]$location$street$name, month=document[[4]]$month, outcome_status=document[[4]]$outcome_status$category)
+  d5 <- data.frame(category=document[[5]]$category,lon=document[[5]]$location$latitude, lat=document[[5]]$location$longitude, id=document[[5]]$id, name=document[[5]]$location$street$name, month=document[[5]]$month, outcome_status=document[[5]]$outcome_status$category)
+  d6 <- data.frame(category=document[[6]]$category,lon=document[[6]]$location$latitude, lat=document[[6]]$location$longitude, id=document[[6]]$id, name=document[[6]]$location$street$name, month=document[[6]]$month, outcome_status=document[[6]]$outcome_status$category)
+  d7 <- data.frame(category=document[[7]]$category,lon=document[[7]]$location$latitude, lat=document[[7]]$location$longitude, id=document[[7]]$id, name=document[[7]]$location$street$name, month=document[[7]]$month, outcome_status=document[[7]]$outcome_status$category)
+  d8 <- data.frame(category=document[[8]]$category,lon=document[[8]]$location$latitude, lat=document[[8]]$location$longitude, id=document[[8]]$id, name=document[[8]]$location$street$name, month=document[[8]]$month, outcome_status=document[[8]]$outcome_status$category)
+  d9 <- data.frame(category=document[[9]]$category,lon=document[[9]]$location$latitude, lat=document[[9]]$location$longitude, id=document[[9]]$id, name=document[[9]]$location$street$name, month=document[[9]]$month, outcome_status=document[[9]]$outcome_status$category)
+  d10 <- data.frame(category=document[[10]]$category,lon=document[[10]]$location$latitude, lat=document[[10]]$location$longitude, id=document[[10]]$id, name=document[[10]]$location$street$name, month=document[[10]]$month, outcome_status=document[[10]]$outcome_status$category)
+  d11 <- data.frame(category=document[[11]]$category,lon=document[[11]]$location$latitude, lat=document[[11]]$location$longitude, id=document[[11]]$id, name=document[[11]]$location$street$name, month=document[[11]]$month, outcome_status=document[[11]]$outcome_status$category)
+  d12 <- data.frame(category=document[[12]]$category,lon=document[[12]]$location$latitude, lat=document[[12]]$location$longitude, id=document[[12]]$id, name=document[[12]]$location$street$name, month=document[[12]]$month, outcome_status=document[[12]]$outcome_status$category)
+  
+  document <- rbind(master, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
   
   
-  url = "https://data.police.uk/api/crimes-street/all-crime?poly=53.5803,-2.6882:53.5803,-3.2389:53.2307,-2.6882:53.2307,-3.2389&date=2016-10"
-  r <- GET(url)
-  json <- content(r, "text")
-  document <- jsonlite::fromJSON(txt=json)
+  
+  
+
+
   
   # ---------- DATA CLEANING -----------
   
   # remove hyphenation for cleaner legend + popup
   document$category <- gsub('-', ' ', document$category)
-  
 
   # Capitalise each word in string for aesthetical plot
   document$category <- paste(toupper(substring(document[,c("category")], 1, 1)), substring(document[,c("category")], 2), sep="")
@@ -88,10 +66,6 @@ server <- function(input, output, session) {
     palette = "YlGnBu",
     domain = document$category
   )
-  
-  data <- reactive({
-    filter(crimefilter %in% input$crimefilter)
-  })
   
   output$map <- renderLeaflet({
     
