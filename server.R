@@ -88,6 +88,7 @@ server <- function(input, output, session) {
                  })
   })
   
+  # reactive expression to subset crimes chosen in date slider
   filteredCrime <- reactive({
     document[document$month.int >= input$time[1] & document$month.int <= input$time[2], ]
   })

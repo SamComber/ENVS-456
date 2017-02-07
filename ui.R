@@ -35,7 +35,9 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                       
                       column(4,
                              wellPanel(
-                               
+                               h4("Observations"),
+                               sliderInput("obs", "Number of observations:",  
+                                           min = 1, max = 1000, value = 500)
                              )
                       ),
                       
@@ -61,4 +63,8 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
            
 )
 
+library(ggplot2)
 
+# summate crimes per month
+
+ggplot(data=document, aes(x=document$month))
