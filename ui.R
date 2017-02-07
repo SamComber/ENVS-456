@@ -2,13 +2,6 @@ library(shiny)
 library(leaflet)
 library(RColorBrewer)
 
-# ui <- bootstrapPage(
-#   
-#   tags$style(type="text/css", "html, body {width:100%; height:100%}"),
-#   leafletOutput("map", width = "100%", height = "100%")
-#   
-# )
-
 ui <- navbarPage("Crime Mapping in Liverpool", id="nav", 
                  
            tabPanel("Interactive map",
@@ -33,8 +26,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                                       max(document$month.int),
                                       pre = '2016-',
                                       value = c(min(document$month.int), max(document$month.int)),
-                                      step = 1),
-                          plotOutput("crimescatter", height = 400)
+                                      step = 1)
                           )
 
                         ),
@@ -42,13 +34,16 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                     fluidRow(
                       
                       column(4,
-                       h4("hi")
-                             
+                             wellPanel(
+                               
+                             )
                       ),
                       
                       column(8,
-                      h4("hi")
-                                                   )
+                        h4("hi"),
+                        plotOutput("crimescatter", height = 400)
+          
+                      )
                     )
                     
                     

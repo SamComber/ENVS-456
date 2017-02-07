@@ -69,6 +69,8 @@ server <- function(input, output, session) {
     domain = document$category
   )
   
+  # ---------- REACTIVE DATA ------------
+  
   output$map <- renderLeaflet({
     
     withProgress(message = 'Rendering Map Data',
@@ -84,6 +86,14 @@ server <- function(input, output, session) {
                                                                            "<b>Location:</b> ", document$name, "<br>", 
                                                                            "<b>Outcome:</b> ", document$outcome_status, "<br>")) %>% addLegend("bottomleft", values = document$category, pal = pal)
                  })
+  })
+  
+  filteredCrime <- reactive({
+    document[document$month.int >= input$time[1] & document$month.int <= input$time[2], ]
+  })
+  
+  observe({
+    leafletProxy("map", data = filteredCrime()) %>% clearShapes()
   })
   
   output$crimescatter <- renderPlot({
