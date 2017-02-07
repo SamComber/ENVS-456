@@ -49,6 +49,9 @@ server <- function(input, output, session) {
   
   # fix bug where columns are converted to factors. Set as chr class 
   document <- rapply(document, as.character, classes="factor", how="replace") 
+  # recode month to integer value for sliderInput functionality
+  document["month.int"] <- ifelse(document['month'] == "2015-12", 12, 
+                                  ifelse(document['month'] == "2016-01", 1, 2))
   
   
   # ---------- DATA CLEANING -----------

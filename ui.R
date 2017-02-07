@@ -28,28 +28,32 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                           width = 330, height = "auto",
                           
                           h2("Data controller"),
-                          # sliderInput("daterange", "Date range: ", min(as.numeric(document$month)), max(as.numeric(document$month)), value = range(as.numeric(document$month))),
+                          sliderInput("time", "Month Slider",
+                                      min(document$month.int),
+                                      max(document$month.int),
+                                      pre = '2016-',
+                                      value = c(min(document$month.int), max(document$month.int)),
+                                      step = 1),
                           plotOutput("crimescatter", height = 400)
                           )
 
                         ),
-                    checkboxGroupInput("crimefilter", "Crime filter",
-                                       choices = c(
-                                         'Anti social behaviour' = 1,
-                                         'Bicycle theft' = 2,
-                                         'Criminal damage arson' = 3,
-                                         'Drugs' = 4,
-                                         'Other crime' = 5,
-                                         'Possessions of weapons' = 6,
-                                         'Public order' = 7,
-                                         'Robbery' = 8,
-                                         'Shoplifting' = 9,
-                                         'Theft from the person' = 10,
-                                         'Vehicle crime' = 11,
-                                         'Violent crime' = 12
-                                       ),
-                                       selected = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
+                    
+                    fluidRow(
+                      
+                      column(4,
+                       h4("hi")
+                             
+                      ),
+                      
+                      column(8,
+                      h4("hi")
+                                                   )
                     )
+                    
+                    
+
+
             
             ),
            
