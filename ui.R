@@ -26,7 +26,9 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                                       max(document$month.int),
                                       pre = '2016-',
                                       value = c(min(document$month.int), max(document$month.int)),
-                                      step = 1)
+                                      step = 1),
+                          plotOutput("crimeline", height = 200),
+                          p(class="text-muted", "Note: please wait for data to be pulled from the Police API")
                           )
 
                         ),
@@ -42,8 +44,9 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                       ),
                       
                       column(8,
-                        h4("hi"),
-                        plotOutput("crimescatter", height = 400)
+                        h4("DBSCAN"),
+                        # plotOutput("crimescatter", height = 400)
+                        plotOutput("dbscan", height=400)
           
                       )
                     )
@@ -62,9 +65,3 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                     )
            
 )
-
-library(ggplot2)
-
-# summate crimes per month
-
-ggplot(data=document, aes(x=document$month))
