@@ -98,18 +98,25 @@ server <- function(input, output, session) {
     ggplot(t, aes(month, freq, group = 1)) +
       geom_point(colour = '#496D64') +
       geom_line(colour = '#496D64') + theme_bw() +
-      geom_smooth() + labs(x="Month", y="Frequency") +
+      geom_smooth(method="loess") + labs(x="Month", y="Frequency") +
       scale_y_continuous(labels = comma) +
       theme(axis.text.x=element_text(angle=90, hjust=1))
+  })
+  
+  output$dbopt <- renderPlot({
+    x <- data.frame(lat=as.numeric(document$lat), lon=as.numeric(document$lon))
+    dbscan::kNNdistplot(x, k = 10)
   })
   
   output$dbscan <- renderPlot({
     x <- data.frame(lat=as.numeric(document$lat), lon=as.numeric(document$lon))
     res.db <- dbscan::dbscan(x, 0.0015, 5)
     # res.fpc <- fpc::dbscan(x, eps=0.002, 10)
-    plot(res.db, x, main="DBSCAN", frame = FALSE)
-    # dbscan::kNNdistplot(x, k = 10)
-    
+    plot(res.db, x, 
+         frame = FALSE, 
+         main="", 
+         xlab="Latitude", 
+         ylab="Longitude")
   })
   
   # ---------- REACTIVE DATA -----------

@@ -35,18 +35,15 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                     
                     fluidRow(
                       
-                      column(4,
-                             wellPanel(
-                               h4("Observations"),
-                               sliderInput("obs", "Number of observations:",  
-                                           min = 1, max = 1000, value = 500)
-                             )
+                      column(6,
+                        h4("KNN-distance plot for optimal epsilon value - k = 10"),
+                        plotOutput("dbopt")
+                             
                       ),
                       
-                      column(8,
-                        h4("DBSCAN"),
-                        # plotOutput("crimescatter", height = 400)
-                        plotOutput("dbscan", height=400)
+                      column(6,
+                        h4("DBSCAN - epsilson = 0.002, min points = 10"),
+                        plotOutput("dbscan", height=400, width=400)
           
                       )
                     )
