@@ -28,30 +28,33 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                                       value = c(min(document$month.int), max(document$month.int)),
                                       step = 1),
                           plotOutput("crimeline", height = 200),
-                          p(class="text-muted", "Note: please wait for data to be pulled from the Police API")
+                          p(class="text-muted", "Note: pulling data from the Police API may take a few minutes...")
                           )
 
                         ),
                     
                     fluidRow(
-                      
-                      column(6,
+                      hr(),
+                      column(4,
                         h4("KNN-distance plot for optimal epsilon value - k = 10"),
                         plotOutput("dbopt")
                              
                       ),
                       
-                      column(6,
+                      column(4,
                         h4("DBSCAN - epsilson = 0.002, min points = 10"),
-                        plotOutput("dbscan", height=400, width=400)
+                        plotOutput("dbscan")
           
-                      )
+                      ),
+                      column(4,
+                        h4("Crime category frequencies"),
+                        plotOutput("crimescatter")
+                             
+                      ),
+                      hr()
                     )
                     
                     
-
-
-            
             ),
            
            tabPanel("Data explorer", 
