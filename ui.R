@@ -1,14 +1,19 @@
 library(shiny)
 library(leaflet)
 library(RColorBrewer)
+library(shinythemes)
+library(htmltools)
+library(htmlwidgets)
+library(metricsgraphics)
+library(RColorBrewer)
 
-ui <- navbarPage("Crime Mapping in Liverpool", id="nav", 
+# use shinythemes
+ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id="nav", 
                  
            tabPanel("Interactive map",
                     div(class="outer",
                         
                         tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
-                        
                         tags$head(
                           includeCSS("https://fonts.googleapis.com/css?family=Montserrat"),
                           includeCSS("styles.css")
@@ -32,9 +37,9 @@ ui <- navbarPage("Crime Mapping in Liverpool", id="nav",
                           )
 
                         ),
-                    
-                    fluidRow(
-                      hr(),
+                    hr(),
+                    fluidRow(class="graphs",
+                      
                       column(4,
                         h4("KNN-distance plot for optimal epsilon value - k = 10"),
                         plotOutput("dbopt")
