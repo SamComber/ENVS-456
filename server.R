@@ -57,13 +57,20 @@ server <- function(input, output, session) {
   # fix bug where columns are converted to factors. Set as chr class
   document <- rapply(document, as.character, classes="factor", how="replace")
   # recode month to integer value for sliderInput functionality
-  document$month.int <- ifelse(document['month'] == "2015-12", 12,
-                                  ifelse(document['month'] == "2016-01", 1, 2))
-
-  react.document <- reactive({
-    document[sample(nrow(document), input$samplesize), ]
-  })
-
+  document$intmonth <- ifelse(document['month'] == "2015-12", 12,
+                               ifelse(document['month'] == "2016-02", 2,
+                               ifelse(document['month'] == "2016-01", 1,
+                               ifelse(document['month'] == "2016-03", 3,
+                               ifelse(document['month'] == "2016-04", 4,
+                               ifelse(document['month'] == "2016-05", 5,
+                               ifelse(document['month'] == "2016-06", 6,
+                               ifelse(document['month'] == "2016-07", 7,
+                               ifelse(document['month'] == "2016-08", 8,
+                               ifelse(document['month'] == "2016-09", 9,
+                               ifelse(document['month'] == "2016-10", 10,                                      
+                               ifelse(document['month'] == "2016-11", 11, 1))))))))))))     
+                        
+                      
   # ---------- DATA CLEANING -----------
 
   # remove hyphenation for cleaner legend + popup
@@ -93,18 +100,41 @@ server <- function(input, output, session) {
                  })
   })
   
+  # ---------- REACTIVE DATA -----------
+  
+  react.document <- reactive({
+    document[sample(nrow(document), input$samplesize), ]
+  })
+  
+  time.document <- reactive({
+    document[document$intmonth >= input$time[1] & document$intmonth <= input$time[2], ]
+  })
+  
+  # observe({
+  #   leafletProxy("map", data = react.document()) %>% addCircleMarkers(as.numeric(react.document()$lon),
+  #                                                                     as.numeric(react.document()$lat),
+  #                                                                     group = "Markers",
+  #                                                                     radius = 5,
+  #                                                                     clusterOptions = markerClusterOptions(),
+  #                                                                     popup = paste("<b>Crime:</b> ", document$category, "<br>",
+  #                                                                                  "<b>Date:</b> <i>", document$month, "</i><br>",
+  #                                                                                  "<b>Location:</b> ", document$name, "<br>",
+  #                                                                                  "<b>Outcome:</b> ", document$outcome_status, "<br>"))
+  # })
+  
   observe({
-    leafletProxy("map", data = react.document()) %>% addCircleMarkers(as.numeric(react.document()$lon),
-                                                                      as.numeric(react.document()$lat),
-                                                                      group = "Markers",
-                                                                      radius = 5,
-                                                                      clusterOptions = markerClusterOptions(),
-                                                                      popup = paste("<b>Crime:</b> ", document$category, "<br>",
+    leafletProxy("map", data = time.document()) %>% addCircleMarkers(as.numeric(time.document()$lon),
+                                                                     as.numeric(time.document()$lat),
+                                                                     group = "Markers",
+                                                                     radius = 5,
+                                                                     clusterOptions = markerClusterOptions(),
+                                                                     popup = paste("<b>Crime:</b> ", document$category, "<br>",
                                                                                    "<b>Date:</b> <i>", document$month, "</i><br>",
                                                                                    "<b>Location:</b> ", document$name, "<br>",
                                                                                    "<b>Outcome:</b> ", document$outcome_status, "<br>"))
   })
   
+
 
   output$crimeline <- renderPlot({
     # summate crimes per month
@@ -131,8 +161,6 @@ server <- function(input, output, session) {
          xlab="Latitude",
          ylab="Longitude")
   })
-  
-  # ---------- REACTIVE DATA -----------
   
   output$crimebar <- renderPlot({
     counts <- data.frame(table(document$category))
