@@ -16,7 +16,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                         tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
                         tags$head(
                           includeCSS("https://fonts.googleapis.com/css?family=Montserrat"),
-                          includeCSS("styles.css")
+                          includeCSS("www/styles.css")
                         ),
 
                         leafletOutput("map", width = "100%"),
@@ -26,13 +26,14 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                           width = 330, height = "auto",
                           
                           h2("Data controller"),
-                          sliderInput("time", "Month Slider",
-                                      min(document$month.int),
-                                      max(document$month.int),
-                                      pre = '2016-',
-                                      value = c(min(document$month.int), max(document$month.int)),
-                                      step = 1),
+                          # sliderInput("time", "Month Slider",
+                          #             min(document$month.int),
+                          #             max(document$month.int),
+                          #             pre = '2016-',
+                          #             value = c(min(document$month.int), max(document$month.int)),
+                          #             step = 1),
                           plotOutput("crimeline", height = 200),
+                          sliderInput("samplesize", "Sample Size", min = 1000, max=60000, value = 10000, step = 10000),
                           p(class="text-muted", "Note: pulling data from the Police API may take a few minutes...")
                           )
 
@@ -53,7 +54,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                       ),
                       column(4,
                         h4("Crime category frequencies"),
-                        plotOutput("crimescatter")
+                        plotOutput("crimebar")
                              
                       ),
                       hr()
