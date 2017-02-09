@@ -108,7 +108,7 @@ server <- function(input, output, session) {
 
   output$crimeline <- renderPlot({
     # summate crimes per month
-    t <- count(react.document, "month")
+    t <- count(react.document(), "month")
     ggplot(t, aes(month, freq, group = 1)) +
       geom_point(colour = '#496D64') +
       geom_line(colour = '#496D64') + theme_bw() +

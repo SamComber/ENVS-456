@@ -33,7 +33,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                           #             value = c(min(document$month.int), max(document$month.int)),
                           #             step = 1),
                           plotOutput("crimeline", height = 200),
-                          sliderInput("samplesize", "Sample Size", min = 1000, max=60000, value = 10000, step = 10000),
+                          sliderInput("samplesize", "Sample Size", min = 1000, max=60000, value = 60000, step = 10000),
                           p(class="text-muted", "Note: pulling data from the Police API may take a few minutes...")
                           )
 
