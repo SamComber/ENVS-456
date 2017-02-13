@@ -1,7 +1,10 @@
 ---
-title: "ENVS-463 Web Mapping"
+title: "ENVS-456 Web Mapping and Analysis"
 output: html_document
+author: "Sam Comber"
 ---
+
+This R markdown file details the workflow of the design process for the web application. 
 
 ```{r ui, eval=FALSE}
 library(shiny)
