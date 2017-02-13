@@ -95,16 +95,17 @@ server <- function(input, output, session) {
                      Sys.sleep(0.25)
                    }
 
-                   leaflet() %>% addProviderTiles("CartoDB.Positron") %>% addLegend("bottomleft", values = document$category, pal = pal) %>%
-                     fitBounds(-3.008756, 53.32679, -2.818, 53.47497)
+                   leaflet() %>% addProviderTiles("CartoDB.Positron")  %>%
+                     fitBounds(-3.008756, 53.32679, -2.818, 53.47497) 
+                   # %>% addLegend("bottomleft", values = document$category, pal = pal)
                  })
   })
   
   # ---------- REACTIVE DATA -----------
   
-  react.document <- reactive({
-    document[sample(nrow(document), input$samplesize), ]
-  })
+  # react.document <- reactive({
+  #   document[sample(nrow(document), input$samplesize), ]
+  # })
   
   time.document <- reactive({
     document[document$intmonth >= input$time[1] & document$intmonth <= input$time[2], ]
@@ -123,22 +124,29 @@ server <- function(input, output, session) {
   # })
   
   observe({
-    leafletProxy("map", data = time.document()) %>% addCircleMarkers(as.numeric(time.document()$lon),
-                                                                     as.numeric(time.document()$lat),
-                                                                     group = "Markers",
-                                                                     radius = 5,
-                                                                     clusterOptions = markerClusterOptions(),
-                                                                     popup = paste("<b>Crime:</b> ", document$category, "<br>",
-                                                                                   "<b>Date:</b> <i>", document$month, "</i><br>",
-                                                                                   "<b>Location:</b> ", document$name, "<br>",
-                                                                                   "<b>Outcome:</b> ", document$outcome_status, "<br>"))
+    # clearMarkerClusters 
+    if(nrow(time.document()) == 0) {
+      leafletProxy("map", data = time.document()) %>% clearMarkerClusters()
+    } else {
+      leafletProxy("map", data = time.document()) %>% clearMarkerClusters() %>% addCircleMarkers(as.numeric(time.document()$lon),
+                                                                                                 as.numeric(time.document()$lat),
+                                                                                                 group = "Markers",
+                                                                                                 radius = 5,
+                                                                                                 clusterOptions = markerClusterOptions(),
+                                                                                                 popup = paste("<b>Crime:</b> ", document$category, "<br>",
+                                                                                                               "<b>Date:</b> <i>", document$month, "</i><br>",
+                                                                                                               "<b>Location:</b> ", document$name, "<br>",
+                                                                                                               "<b>Outcome:</b> ", document$outcome_status, "<br>"))  
+    }
+    
+    
   })
   
 
 
   output$crimeline <- renderPlot({
     # summate crimes per month
-    t <- count(react.document(), "month")
+    t <- count(document, "month")
     ggplot(t, aes(month, freq, group = 1)) +
       geom_point(colour = '#496D64') +
       geom_line(colour = '#496D64') + theme_bw() +

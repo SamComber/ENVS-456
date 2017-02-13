@@ -26,12 +26,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                           width = 330, height = "auto",
                           
                           h2("Data controller"),
-                          sliderInput("time", "Month Slider",
-                                      min(1),
-                                      max(12),
-                                      pre = '2016-',
-                                      value = 1,
-                                      step = 1),
+                          sliderInput("time", "Month Slider", min = 1, max = 12, value = c(1,12), step=1, pre = "Month: "),
                           plotOutput("crimeline", height = 200),
                           sliderInput("samplesize", "Sample Size", min = 1000, max=10000, value = 10000, step = 1000),
                           p(class="text-muted", "Note: pulling data from the Police API may take a few minutes...")
