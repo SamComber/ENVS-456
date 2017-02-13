@@ -69,9 +69,9 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                       backend for storing crimes, each page refresh requires a new HTTP request to the Police API which significantly enhances the client-side loadtime of the app.
                       For this reason, we use a single-page application (SPA) design that uses AJAX to eliminate the need for page refreshes. The data explorer tab tabulates the
                       tidied dataset, allowing the user to search by location, outcome status and more."),
-                    p("Moreover, by using the interactive sliders, the user is able to observe how the spatio-temporal variation in crime density.
+                    p("Moreover, by using the interactive sliders, the user is able to observe the spatio-temporal variation in crime density.
                       Note: the sample size slider does not change the number of crime points visualised on the map. The Github repository for the project
-                      can be found: ", a("here", href="https://github.com/SamComber"), " and the R markdown file that explains the design process ", a("here.", href="https://github.com/SamComber"))
+                      can be found ", a("here", href="https://github.com/SamComber"), " and the R markdown file that explains the design process ", a("here.", href="https://github.com/SamComber"))
            )
            
 )
