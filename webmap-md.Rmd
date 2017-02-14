@@ -4,11 +4,13 @@ output: html_document
 author: "Sam Comber"
 ---
 
-This R markdown file details the workflow of the design process for the web application (https://gds-funtimes.shinyapps.io/webmap/). Firstly, Shiny provides the overarching web infrastructure for projecting the spatio-temporal geography of crime densities across Liverpool. Shiny uses a single-page application architecture which, in turn, uses AJAX for creating fluid user experiences without the need for constant page reloads. In our case, this is important because every page reload also pulls a 12 month window of crime occurences client-side from the Police.uk API - given a web server, an alternative would be a server-side cache of monthly crime data.
+This R markdown file details the workflow of the design process for the web application (https://gds-funtimes.shinyapps.io/webmap/). Firstly, Shiny provides the overarching web infrastructure for projecting the spatio-temporal geography of crime densities across Liverpool. Shiny uses a single-page application architecture which, in turn, uses AJAX for creating fluid user experiences without the need for constant page reloads. In our case, this is important because every page reload requires a HTTP request for 12 month window of crime occurences client-side from the Police.uk API - given a web server, an alternative would be a server-side cache of monthly crime data.
 
 As Shiny uses a reactive programming model, the user is able to interact through the browser interface to explore how clusters of crime occurences fluctuate over time. This is achieved by dragging the month slider on the data controller to the selected date range. Doing so changes the 
 
-By either clicking or zooming on the clusters, finer granularity can be observed until individual markers associated with each cluster enter the browser's viewport. Individual markers are clickable and contain popup information pertaining the 
+By either clicking or zooming on the clusters, finer granularity can be observed until individual markers associated with each cluster enter the browser's viewport. Individual markers are clickable and provide: a crime description, date of occurence, location and outcome status if available.  
+
+To complement the marker cluster functionality provided by Leaflet, we apply the DBSCAN density-based clustering algorithm for grouping nearby neighbour points in space. 
 
 
 On the front-end, the <i>flatly</i> theme from the shinythemes package is used to style the application. Yet, further customisation is introduced with a custom CSS script to fine-tune the aesthetical properties of the dashboard in the user's viewport.
@@ -16,10 +18,11 @@ On the front-end, the <i>flatly</i> theme from the shinythemes package is used t
 <!-- 
 x) data pulled from API for 12 months, month slider to map spatio-temporal change
 x) data explorer AJAX
-1) bootstrap theme.
+1) bootstrap theme. (DONE)
 2) tab panels for SPA
 3) DBSCAN
 4) markerclusters + labels
+5) leaflet proxy observers + reactive data + clearmarkers each time input changes to prevent duplicated spatial data on map
 -->
 
 ```{r ui, eval=FALSE}
@@ -182,10 +185,10 @@ server <- function(input, output, session) {
                       
   # ---------- DATA CLEANING -----------
 
-  # remove hyphenation for cleaner legend + popup
+  # remove hyphenation for cleaner popup description
   document$category <- gsub('-', ' ', document$category)
 
-  # Capitalise each word in string for aesthetical plot
+  # Capitalise each word in string for aesthetical popup descriptions
   document$category <- paste(toupper(substring(document[,c("category")], 1, 1)), substring(document[,c("category")], 2), sep="")
 
   # ---------- DATA PROCESSING ----------
