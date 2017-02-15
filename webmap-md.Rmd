@@ -4,20 +4,13 @@ output: html_document
 author: "Sam Comber"
 ---
 
-This R markdown file details the workflow of the design process for a web application hosted on the shinyapps server -  url: https://gds-funtimes.shinyapps.io/webmap/. Firstly, Shiny provides the overarching web infrastructure for projecting the spatio-temporal geography of crime densities across Liverpool. Shiny uses a single-page application architecture which, in turn, uses AJAX for creating fluid user experiences without the need for constant page reloads. In our case, this is important because every page reload requires a HTTP request for 12 month window of crime occurences client-side from the Police.uk API - given a web server, an alternative would be a server-side cache of monthly crime data to decrease loading times.
+This R markdown file details the workflow of the design process for a web application hosted on the shinyapps server (URL: https://gds-funtimes.shinyapps.io/webmap). Firstly, Shiny provides the overarching web infrastructure for projecting the spatio-temporal geography of crime densities across Liverpool. Shiny uses a single-page application architecture which, in turn, uses AJAX for creating fluid user experiences without the need for constant page reloads. In our case, this is important because every page reload requires a HTTP request for the 12 month window of crime occurences client-side from the Police.uk API - given a web server, an alternative would be a server-side cache of monthly crime data to decrease loading times. As Shiny uses a reactive programming model, the user is able to interact through the browser interface to explore how clusters of crime occurences fluctuate over time. To achieve this we use Leaflet as the presentation layer, projecting the geospatial data with Leaflet's marker clusters to decrease the overhead involved with projecting 65,000+ individual crimes. 
 
-As Shiny uses a reactive programming model, the user is able to interact through the browser interface to explore how clusters of crime occurences fluctuate over time. To achieve this we use Leaflet as the presentation layer. Leaflet's marker cluster functionality decreases the overhead involved with projecting 65,000+ points of crime occurences
+We use Shiny's event-driven observers for providing interactivity. Here, changes observed when a user interacts with the dashboard - i.e. by dragging the month slider to the selected date range - causes the marker clusters to rerender by firstly removing the existing marker clusters and then redrawing them according to the data subsetting rules applied by the user - as the clusterer is only efficient up to 50,000 markers, we observe some latency when using filtering our dataset. By clicking or zooming on the clusters, finer granularity can be observed until individual markers associated with each cluster enter the browser's viewport. Individual markers are clickable and on popup provide: a crime description, date of occurence, location and outcome status if available.
 
+To complement the marker cluster functionality provided by Leaflet, we apply the DBSCAN density-based clustering algorithm for grouping nearby neighbour points in space. The use of reactive expressions means DBSCAN is updated when the user toggles the sample size slider. Next, we develop a data explorer tab which uses the <i>DT</i> package for tabulating R data objects such as matrices and data frames. DataTables in Shiny use a server-side processing model as the data is processed through R. 
 
-We use Shiny's event-driven observers for providing interactivity. Here, changes observed when a user interacts with the dashboard - i.e. by dragging the month slider to the selected date range - cause the marker clusters to rerender by firstly removing the existing marker clusters and then redrawing them according to the data subsetting rules applied by the user. By clicking or zooming on the clusters, finer granularity can be observed until individual markers associated with each cluster enter the browser's viewport. Individual markers are clickable and provide: a crime description, date of occurence, location and outcome status if available.
-
-
-
-Despite this, some latency is observed when using mnoth filtering.
-
-To complement the marker cluster functionality provided by Leaflet, we apply the DBSCAN density-based clustering algorithm for grouping nearby neighbour points in space. 
-
-On the front-end, the <i>flatly</i> theme from the shinythemes package is used to style the application. Yet, further customisation is introduced with a custom CSS script to fine-tune the aesthetical properties of the dashboard in the user's viewport. Tab panels 
+Finally, on the front-end, the <i>flatly</i> theme from the <i>shinythemes</i> package is used to style the application. Yet, further customisation is introduced with a custom CSS script (appended to end of markdown document) to fine-tune the aesthetical properties of the dashboard in the user's viewport. 
 
 <!-- 
 x) data pulled from API for 12 months, month slider to map spatio-temporal change
@@ -28,6 +21,8 @@ x) data explorer AJAX
 4) markerclusters + labels
 5) leaflet proxy observers + reactive data + clearmarkers each time input changes to prevent duplicated spatial data on map
 -->
+
+<b>ui.R</b>
 
 ```{r ui, eval=FALSE}
 library(shiny)
@@ -109,6 +104,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
 )
 ```
 
+<b>server.R</b>
 
 ```{r, server, eval=FALSE}
 library(shiny)
@@ -234,23 +230,6 @@ server <- function(input, output, session) {
     document[document$intmonth >= input$time[1] & document$intmonth <= input$time[2], ]
   })
   
-  # observe({
-  #   # clearMarkerClusters upon changing slider
-  #   if(nrow(time.document()) == 0) {
-  #     leafletProxy("map", data = react.document()) %>% clearMarkerClusters()
-  #   } else {
-  #     leafletProxy("map", data = react.document()) %>% addCircleMarkers(as.numeric(react.document()$lon),
-  #                                                                       as.numeric(react.document()$lat),
-  #                                                                       group = "Markers",
-  #                                                                       radius = 5,
-  #                                                                       clusterOptions = markerClusterOptions(),
-  #                                                                       popup = paste("<b>Crime:</b> ", document$category, "<br>",
-  #                                                                                     "<b>Date:</b> <i>", document$month, "</i><br>",
-  #                                                                                     "<b>Location:</b> ", document$name, "<br>",
-  #                                                                                     "<b>Outcome:</b> ", document$outcome_status, "<br>"))
-  #   }
-  # })
-  
   # create obserer object to re-execute everytime reactive data input is changed - i.e. slider inputs
   observe({
     # ensure markers are cleared each time observer re-executes to elininate data duplication
@@ -332,4 +311,60 @@ server <- function(input, output, session) {
 
 ```
 
+<b>CSS file:</b>
 
+```{r, css, eval=FALSE}
+*, body {
+  font-family: "Montserrat";
+}
+
+#controls {
+  /* Appearance */
+  background-color: white;
+  padding: 0 20px 20px 20px;
+  cursor: move;
+  /* Fade out while not hovering */
+  opacity: 0.65;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+}
+#controls:hover {
+  /* Fade in while hovering */
+  opacity: 0.95;
+  transition-delay: 0;
+}
+
+.navbar {
+  margin-bottom: 0px;
+  border: 0;
+}
+
+.navbar-brand {
+  padding-left: 20px;
+}
+
+.navbar-brand, li>a {
+  color: white;
+}
+
+.container-fluid:nth-child(2) {
+  padding-left: 0px !important;
+  padding-right: 0px !important;
+}
+
+.tab-pane > p {
+  margin-top: 20px;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.dataTables_wrapper {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.graphs {
+  padding-left: 50px;
+}
+
+```
