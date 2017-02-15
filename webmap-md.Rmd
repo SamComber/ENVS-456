@@ -4,11 +4,11 @@ output: html_document
 author: "Sam Comber"
 ---
 
-This R markdown file details the workflow of the design process for a web application hosted on the shinyapps server (URL: https://gds-funtimes.shinyapps.io/webmap). Firstly, Shiny provides the overarching web infrastructure for projecting the spatio-temporal geography of crime densities across Liverpool. Shiny uses a single-page application architecture which, in turn, uses AJAX for creating fluid user experiences without the need for constant page reloads. In our case, this is important because every page reload requires a HTTP request for the 12 month window of crime occurences client-side from the Police.uk API - given a web server, an alternative would be a server-side cache of monthly crime data to decrease loading times. As Shiny uses a reactive programming model, the user is able to interact through the browser interface to explore how clusters of crime occurences fluctuate over time. To achieve this we use Leaflet as the presentation layer, projecting the geospatial data with Leaflet's marker clusters to decrease the overhead involved with projecting 65,000+ individual crimes. 
+This R markdown file details the workflow of the design process for a web application hosted on the <i>shinyapps</i> server (URL: https://gds-funtimes.shinyapps.io/webmap). Firstly, Shiny provides the overarching web infrastructure for projecting the spatio-temporal geography of crime densities across Liverpool. Shiny uses a single-page application architecture which, in turn, uses AJAX for creating fluid user experiences without the need for constant page reloads. In our case, this is important because every page reload requires a HTTP request for the 12 month window of crime occurences client-side from the Police.uk API - given a web server, an alternative would be a server-side cache of monthly crime data to decrease loading times of the application. In any case, the client-side call for 12 months of data accounts for the 1-2 minute loading time of the application.
 
-We use Shiny's event-driven observers for providing interactivity. Here, changes observed when a user interacts with the dashboard - i.e. by dragging the month slider to the selected date range - causes the marker clusters to rerender by firstly removing the existing marker clusters and then redrawing them according to the data subsetting rules applied by the user - as the clusterer is only efficient up to 50,000 markers, we observe some latency when using filtering our dataset. By clicking or zooming on the clusters, finer granularity can be observed until individual markers associated with each cluster enter the browser's viewport. Individual markers are clickable and on popup provide: a crime description, date of occurence, location and outcome status if available.
+As Shiny uses a reactive programming model, the user is able to interact through the browser interface to explore how clusters of crime occurences fluctuate over time. To achieve this we use Leaflet as the presentation layer, projecting the geospatial data with Leaflet's marker clusters to decrease the overhead involved with projecting 65,000+ individual crimes. We use Shiny's event-driven observers for providing interactivity. Here, changes observed when a user interacts with the dashboard - i.e. by dragging the month slider to the selected date range - causes the marker clusters to rerender by firstly removing the existing marker clusters and then redrawing them according to the data subsetting rules applied by the user - as the clusterer is only efficient up to 50,000 markers, we observe some latency when using filtering our dataset. By clicking or zooming on the clusters, finer granularity can be observed until individual markers associated with each cluster enter the browser's viewport. Individual markers are clickable and on popup provide: a crime description, date of occurence, location and outcome status if available.
 
-To complement the marker cluster functionality provided by Leaflet, we apply the DBSCAN density-based clustering algorithm for grouping nearby neighbour points in space. The use of reactive expressions means DBSCAN is updated when the user toggles the sample size slider. Next, we develop a data explorer tab which uses the <i>DT</i> package for tabulating R data objects such as matrices and data frames. DataTables in Shiny use a server-side processing model as the data is processed through R. 
+To complement the marker cluster functionality provided by Leaflet, we apply the DBSCAN density-based clustering algorithm for grouping nearby neighbour points in space. The use of reactive expressions means DBSCAN is updated when the user toggles the sample size slider. Next, we develop a data explorer tab which uses the <i>DT</i> package for tabulating R data objects such as matrices and data frames. DataTables in Shiny use a server-side processing model as the data is processed through R. This functionality tabulates a tidied dataset of the crime data, allowing the user to query the datatable by location, outcome status and more.
 
 Finally, on the front-end, the <i>flatly</i> theme from the <i>shinythemes</i> package is used to style the application. Yet, further customisation is introduced with a custom CSS script (appended to end of markdown document) to fine-tune the aesthetical properties of the dashboard in the user's viewport. 
 
@@ -83,22 +83,32 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
             ),
            
            tabPanel("Data explorer", 
-                    p("The data explorer tab displays the tabulation of crime occurences in Liverpool. Search functionality allows
-                      a user to filter a location by road name to count the number of crimes."),
+                    p("The data explorer tab displays the tabulation of crime occurences in Liverpool. 
+                      Search functionality allows a user to filter a location by road name to 
+                      count the number of crimes."),
                     DT::dataTableOutput("crimetable"),
                     hr()
            ),
            tabPanel("About",
-                    p("This shiny app is the product of a class project for ENVS456 - Web Mapping and Analysis designed by Sam Comber. Cluster markers provided
-                      by the Leaflet library are used to lower the overhead of plotting 64,000+ individual crime points. By zooming into or clicking each cluster,
-                      the user is able to visualise the geography of crime density across Liverpool in their viewport. Crime clusters can be expanded until their
-                      constituent crimes are shown individually (clicking individual crimes shows a popup detailing descriptive information). As there is no server-side
-                      backend for storing crimes, each page refresh requires a new HTTP request to the Police API which significantly enhances the client-side loadtime of the app.
-                      For this reason, we use a single-page application (SPA) design that uses AJAX to eliminate the need for page refreshes. The data explorer tab tabulates the
+                    p("This shiny app is the product of a class project for ENVS456 - Web
+                      Mapping and Analysis designed by Sam Comber. Cluster markers provided
+                      by the Leaflet library are used to lower the overhead of plotting 
+                      64,000+ individual crime points. By zooming into or clicking each cluster,
+                      the user is able to visualise the geography of crime density across 
+                      Liverpool in their viewport. Crime clusters can be expanded until their
+                      constituent crimes are shown individually (clicking individual crimes 
+                      shows a popup detailing descriptive information). As there is no server-side
+                      backend for storing crimes, each page refresh requires a new HTTP request 
+                      to the Police API which significantly enhances the client-side loadtime of the app.
+                      For this reason, we use a single-page application (SPA) design that uses 
+                      AJAX to eliminate the need for page refreshes. The data explorer tab tabulates the
                       tidied dataset, allowing the user to search by location, outcome status and more."),
-                    p("Moreover, by using the interactive sliders, the user is able to observe the spatio-temporal variation in crime density.
-                      Note: the sample size slider does not change the number of crime points visualised on the map. The Github repository for the project
-                      can be found ", a("here", href="https://github.com/SamComber"), " and the R markdown file that explains the design process ", a("here.", href="https://github.com/SamComber"))
+                    p("Moreover, by using the interactive sliders, the user is able to observe the spatio-temporal
+                      variation in crime density. Note: the sample size slider does not change the 
+                      number of crime points visualised on the map. The Github repository for the project
+                      can be found ", a("here", href="https://github.com/SamComber/webmap"), " and the R 
+                      markdown file that explains the design process ", 
+                      a("here.", href="https://github.com/SamComber/webmap"))
            )
            
 )
@@ -193,12 +203,6 @@ server <- function(input, output, session) {
 
   # ---------- DATA PROCESSING ----------
 
-  # choose palette colour
-  pal <- colorFactor(
-    palette = "YlGnBu",
-    domain = document$category
-  )
-
   # render static leaflet map without dynamically-loaded data
   output$map <- renderLeaflet({
 
@@ -214,7 +218,6 @@ server <- function(input, output, session) {
                    # define static attrbutes of leaflet output
                    leaflet() %>% addProviderTiles("CartoDB.Positron")  %>%
                      fitBounds(-3.008756, 53.32679, -2.818, 53.47497) 
-                   # %>% addLegend("bottomleft", values = document$category, pal = pal)
                  })
   })
   
@@ -236,16 +239,17 @@ server <- function(input, output, session) {
     if(nrow(time.document()) == 0) {
       leafletProxy("map", data = time.document()) %>% clearMarkerClusters()
     } else {
-      leafletProxy("map", data = time.document()) %>% clearMarkerClusters() %>% addCircleMarkers(as.numeric(time.document()$lon),
-                                                                                                 as.numeric(time.document()$lat),
-                                                                                                 group = "Markers",
-                                                                                                 radius = 5,
-                                                                                                 clusterOptions = markerClusterOptions(),
-                                                                                                 # build popup markers on individual crimes
-                                                                                                 popup = paste("<b>Crime:</b> ", document$category, "<br>",
-                                                                                                               "<b>Date:</b> <i>", document$month, "</i><br>",
-                                                                                                               "<b>Location:</b> ", document$name, "<br>",
-                                                                                                               "<b>Outcome:</b> ", document$outcome_status, "<br>"))  
+      leafletProxy("map", data = time.document()) %>% clearMarkerClusters() 
+        %>% addCircleMarkers(as.numeric(time.document()$lon),
+               as.numeric(time.document()$lat),
+               group = "Markers",
+               radius = 5,
+               clusterOptions = markerClusterOptions(),
+               # build popup markers on individual crimes
+               popup = paste("<b>Crime:</b> ", document$category, "<br>",
+                             "<b>Date:</b> <i>", document$month, "</i><br>",
+                             "<b>Location:</b> ", document$name, "<br>",
+                             "<b>Outcome:</b> ", document$outcome_status, "<br>"))  
     }
   })
   
