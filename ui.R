@@ -71,7 +71,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                       tidied dataset, allowing the user to search by location, outcome status and more."),
                     p("Moreover, by using the interactive sliders, the user is able to observe the spatio-temporal variation in crime density.
                       Note: the sample size slider does not change the number of crime points visualised on the map. The Github repository for the project
-                      can be found ", a("here", href="https://github.com/SamComber"), " and the R markdown file that explains the design process ", a("here.", href="https://github.com/SamComber"))
+                      can be found ", a("here", href="https://github.com/SamComber/ENVS-456"), " and the R markdown file that explains the design process ", a("here.", href="https://github.com/SamComber/ENVS-456/blob/master/webmap-md.html"))
            )
            
 )
