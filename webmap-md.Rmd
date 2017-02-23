@@ -55,7 +55,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                           h2("Data controller"),
                           sliderInput("time", "Month Slider", min = 1, max = 12, value = c(1,12), step=1, pre = "Month: "),
                           plotOutput("crimeline", height = 200),
-                          sliderInput("samplesize", "Sample Size", min = 10000, max=60000, value = 10000, step = 10000),
+                          sliderInput("samplesize", "Sample Size", min = 10000, max=45000, value = 10000, step = 10000),
                           p(class="text-muted", "Note: pulling data from the Police API may take a few minutes...")
                           )
 
@@ -83,32 +83,22 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
             ),
            
            tabPanel("Data explorer", 
-                    p("The data explorer tab displays the tabulation of crime occurences in Liverpool. 
-                      Search functionality allows a user to filter a location by road name to 
-                      count the number of crimes."),
+                    p("The data explorer tab displays the tabulation of crime occurences in Liverpool. Search functionality allows
+                      a user to filter a location by road name to count the number of crimes."),
                     DT::dataTableOutput("crimetable"),
                     hr()
            ),
            tabPanel("About",
-                    p("This shiny app is the product of a class project for ENVS456 - Web
-                      Mapping and Analysis designed by Sam Comber. Cluster markers provided
-                      by the Leaflet library are used to lower the overhead of plotting 
-                      64,000+ individual crime points. By zooming into or clicking each cluster,
-                      the user is able to visualise the geography of crime density across 
-                      Liverpool in their viewport. Crime clusters can be expanded until their
-                      constituent crimes are shown individually (clicking individual crimes 
-                      shows a popup detailing descriptive information). As there is no server-side
-                      backend for storing crimes, each page refresh requires a new HTTP request 
-                      to the Police API which significantly enhances the client-side loadtime of the app.
-                      For this reason, we use a single-page application (SPA) design that uses 
-                      AJAX to eliminate the need for page refreshes. The data explorer tab tabulates the
+                    p("This shiny app is the product of a class project for ENVS456 - Web Mapping and Analysis designed by Sam Comber. Cluster markers provided
+                      by the Leaflet library are used to lower the overhead of plotting 45,000+ individual crime points. By zooming into or clicking each cluster,
+                      the user is able to visualise the geography of crime density across Liverpool in their viewport. Crime clusters can be expanded until their
+                      constituent crimes are shown individually (clicking individual crimes shows a popup detailing descriptive information). As there is no server-side
+                      backend for storing crimes, each page refresh requires a new HTTP request to the Police API which significantly enhances the client-side loadtime of the app.
+                      For this reason, we use a single-page application (SPA) design that uses AJAX to eliminate the need for page refreshes. The data explorer tab tabulates the
                       tidied dataset, allowing the user to search by location, outcome status and more."),
-                    p("Moreover, by using the interactive sliders, the user is able to observe the spatio-temporal
-                      variation in crime density. Note: the sample size slider does not change the 
-                      number of crime points visualised on the map. The Github repository for the project
-                      can be found ", a("here", href="https://github.com/SamComber/ENVS-456"), " and the R 
-                      markdown file that explains the design process ", 
-                      a("here.", href="https://github.com/SamComber/ENVS-456/blob/master/webmap-md.html"))
+                    p("Moreover, by using the interactive sliders, the user is able to observe the spatio-temporal variation in crime density.
+                      Note: the sample size slider does not change the number of crime points visualised on the map. The Github repository for the project
+                      can be found ", a("here", href="https://github.com/SamComber/ENVS-456"), " and the R markdown file that explains the design process ", a("here.", href="https://github.com/SamComber/ENVS-456/blob/master/webmap-md.html"))
            )
            
 )
@@ -145,7 +135,6 @@ server <- function(input, output, session) {
   curl.string <- paste0('poly=',paste0(sprintf('%s,%s',lpool[,2], lpool[,1]), collapse = ':'))
 
   dates = c("2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11")
-  # dates = c("2015-12", "2016-01")
 
   document <- lapply(dates, function(month) {
     # format acceptable packet for http request
@@ -171,34 +160,36 @@ server <- function(input, output, session) {
   d10 <- data.frame(category=document[[10]]$category,lat=document[[10]]$location$latitude, lon=document[[10]]$location$longitude, id=document[[10]]$id, name=document[[10]]$location$street$name, month=document[[10]]$month, outcome_status=document[[10]]$outcome_status$category)
   d11 <- data.frame(category=document[[11]]$category,lat=document[[11]]$location$latitude, lon=document[[11]]$location$longitude, id=document[[11]]$id, name=document[[11]]$location$street$name, month=document[[11]]$month, outcome_status=document[[11]]$outcome_status$category)
   d12 <- data.frame(category=document[[12]]$category,lat=document[[12]]$location$latitude, lon=document[[12]]$location$longitude, id=document[[12]]$id, name=document[[12]]$location$street$name, month=document[[12]]$month, outcome_status=document[[12]]$outcome_status$category)
-  # document <- rbind(master, d1, d2)
-  
+
   # rbind each month to master data.frame
   document <- rbind(master, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
+  
+  document <- document[sample(nrow(document), 45000),]
   
   # fix bug where columns are converted to factors. Set as chr class
   document <- rapply(document, as.character, classes="factor", how="replace")
   # recode month to integer value for sliderInput functionality
-  document$intmonth <- ifelse(document['month'] == "2015-12", 12,
-                               ifelse(document['month'] == "2016-02", 2,
-                               ifelse(document['month'] == "2016-01", 1,
-                               ifelse(document['month'] == "2016-03", 3,
-                               ifelse(document['month'] == "2016-04", 4,
-                               ifelse(document['month'] == "2016-05", 5,
-                               ifelse(document['month'] == "2016-06", 6,
-                               ifelse(document['month'] == "2016-07", 7,
-                               ifelse(document['month'] == "2016-08", 8,
-                               ifelse(document['month'] == "2016-09", 9,
-                               ifelse(document['month'] == "2016-10", 10,                                      
-                               ifelse(document['month'] == "2016-11", 11, 1))))))))))))     
-                        
+  document$intmonth <- ifelse(document$month == "2015-12", 12,
+                               ifelse(document$month == "2016-02", 2,
+                               ifelse(document$month == "2016-01", 1,
+                               ifelse(document$month == "2016-03", 3,
+                               ifelse(document$month == "2016-04", 4,
+                               ifelse(document$month == "2016-05", 5,
+                               ifelse(document$month == "2016-06", 6,
+                               ifelse(document$month == "2016-07", 7,
+                               ifelse(document$month == "2016-08", 8,
+                               ifelse(document$month == "2016-09", 9,
+                               ifelse(document$month == "2016-10", 10,                                      
+                               ifelse(document$month == "2016-11", 11, NA))))))))))))     
+  
+  
                       
   # ---------- DATA CLEANING -----------
 
-  # remove hyphenation for cleaner popup description
+  # remove hyphenation for cleaner legend + popup
   document$category <- gsub('-', ' ', document$category)
 
-  # Capitalise each word in string for aesthetical popup descriptions
+  # Capitalise each word in string for aesthetical plot
   document$category <- paste(toupper(substring(document[,c("category")], 1, 1)), substring(document[,c("category")], 2), sep="")
 
   # ---------- DATA PROCESSING ----------
@@ -239,8 +230,7 @@ server <- function(input, output, session) {
     if(nrow(time.document()) == 0) {
       leafletProxy("map", data = time.document()) %>% clearMarkerClusters()
     } else {
-      leafletProxy("map", data = time.document()) %>% clearMarkerClusters() 
-        %>% addCircleMarkers(as.numeric(time.document()$lon),
+      leafletProxy("map", data = time.document()) %>% clearMarkerClusters() %>% addCircleMarkers(as.numeric(time.document()$lon),
                as.numeric(time.document()$lat),
                group = "Markers",
                radius = 5,
@@ -256,8 +246,8 @@ server <- function(input, output, session) {
   # line graph showing time series of aggregated crime counts per month
   output$crimeline <- renderPlot({
     # summate crimes per month using reactive data
-    t <- count(react.document(), "month")
-    ggplot(t, aes(month, freq, group = 1)) +
+    t <- count(document, month)
+    ggplot(t, aes(month, n, group = 1)) +
       geom_point(colour = '#496D64') +
       geom_line(colour = '#496D64') + theme_bw() +
       geom_smooth(method="loess") + labs(x="Month", y="Frequency") +
@@ -312,7 +302,6 @@ server <- function(input, output, session) {
   })
   
 }
-
 ```
 
 <b>CSS file:</b>

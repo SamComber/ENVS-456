@@ -137,8 +137,9 @@ server <- function(input, output, session) {
   # line graph showing time series of aggregated crime counts per month
   output$crimeline <- renderPlot({
     # summate crimes per month using reactive data
-    t <- count(document, month)
-    ggplot(t, aes(month, n, group = 1)) +
+    # t <- count(react.document(), month)
+    l <- as.data.frame(table(react.document()$month))
+    ggplot(l, aes(l$Var1, l$Freq, group = 1)) +
       geom_point(colour = '#496D64') +
       geom_line(colour = '#496D64') + theme_bw() +
       geom_smooth(method="loess") + labs(x="Month", y="Frequency") +
