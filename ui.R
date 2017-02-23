@@ -28,7 +28,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                           h2("Data controller"),
                           sliderInput("time", "Month Slider", min = 1, max = 12, value = c(1,12), step=1, pre = "Month: "),
                           plotOutput("crimeline", height = 200),
-                          sliderInput("samplesize", "Sample Size", min = 10000, max=60000, value = 10000, step = 10000),
+                          sliderInput("samplesize", "Sample Size", min = 10000, max=45000, value = 10000, step = 10000),
                           p(class="text-muted", "Note: pulling data from the Police API may take a few minutes...")
                           )
 
@@ -63,7 +63,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
            ),
            tabPanel("About",
                     p("This shiny app is the product of a class project for ENVS456 - Web Mapping and Analysis designed by Sam Comber. Cluster markers provided
-                      by the Leaflet library are used to lower the overhead of plotting 64,000+ individual crime points. By zooming into or clicking each cluster,
+                      by the Leaflet library are used to lower the overhead of plotting 45,000+ individual crime points. By zooming into or clicking each cluster,
                       the user is able to visualise the geography of crime density across Liverpool in their viewport. Crime clusters can be expanded until their
                       constituent crimes are shown individually (clicking individual crimes shows a popup detailing descriptive information). As there is no server-side
                       backend for storing crimes, each page refresh requires a new HTTP request to the Police API which significantly enhances the client-side loadtime of the app.

@@ -55,6 +55,8 @@ server <- function(input, output, session) {
   # rbind each month to master data.frame
   document <- rbind(master, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
   
+  document <- document[sample(nrow(document), 45000),]
+  
   # fix bug where columns are converted to factors. Set as chr class
   document <- rapply(document, as.character, classes="factor", how="replace")
   # recode month to integer value for sliderInput functionality
@@ -70,7 +72,8 @@ server <- function(input, output, session) {
                                ifelse(document$month == "2016-09", 9,
                                ifelse(document$month == "2016-10", 10,                                      
                                ifelse(document$month == "2016-11", 11, NA))))))))))))     
-                        
+  
+  
                       
   # ---------- DATA CLEANING -----------
 
@@ -134,8 +137,8 @@ server <- function(input, output, session) {
   # line graph showing time series of aggregated crime counts per month
   output$crimeline <- renderPlot({
     # summate crimes per month using reactive data
-    t <- count(react.document(), "month")
-    ggplot(t, aes(month, freq, group = 1)) +
+    t <- count(document, month)
+    ggplot(t, aes(month, n, group = 1)) +
       geom_point(colour = '#496D64') +
       geom_line(colour = '#496D64') + theme_bw() +
       geom_smooth(method="loess") + labs(x="Month", y="Frequency") +
