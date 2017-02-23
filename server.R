@@ -26,7 +26,6 @@ server <- function(input, output, session) {
   curl.string <- paste0('poly=',paste0(sprintf('%s,%s',lpool[,2], lpool[,1]), collapse = ':'))
 
   dates = c("2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11")
-  # dates = c("2015-12", "2016-01")
 
   document <- lapply(dates, function(month) {
     # format acceptable packet for http request
@@ -52,26 +51,25 @@ server <- function(input, output, session) {
   d10 <- data.frame(category=document[[10]]$category,lat=document[[10]]$location$latitude, lon=document[[10]]$location$longitude, id=document[[10]]$id, name=document[[10]]$location$street$name, month=document[[10]]$month, outcome_status=document[[10]]$outcome_status$category)
   d11 <- data.frame(category=document[[11]]$category,lat=document[[11]]$location$latitude, lon=document[[11]]$location$longitude, id=document[[11]]$id, name=document[[11]]$location$street$name, month=document[[11]]$month, outcome_status=document[[11]]$outcome_status$category)
   d12 <- data.frame(category=document[[12]]$category,lat=document[[12]]$location$latitude, lon=document[[12]]$location$longitude, id=document[[12]]$id, name=document[[12]]$location$street$name, month=document[[12]]$month, outcome_status=document[[12]]$outcome_status$category)
-  # document <- rbind(master, d1, d2)
-  
+
   # rbind each month to master data.frame
   document <- rbind(master, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
   
   # fix bug where columns are converted to factors. Set as chr class
   document <- rapply(document, as.character, classes="factor", how="replace")
   # recode month to integer value for sliderInput functionality
-  document$intmonth <- ifelse(document['month'] == "2015-12", 12,
-                               ifelse(document['month'] == "2016-02", 2,
-                               ifelse(document['month'] == "2016-01", 1,
-                               ifelse(document['month'] == "2016-03", 3,
-                               ifelse(document['month'] == "2016-04", 4,
-                               ifelse(document['month'] == "2016-05", 5,
-                               ifelse(document['month'] == "2016-06", 6,
-                               ifelse(document['month'] == "2016-07", 7,
-                               ifelse(document['month'] == "2016-08", 8,
-                               ifelse(document['month'] == "2016-09", 9,
-                               ifelse(document['month'] == "2016-10", 10,                                      
-                               ifelse(document['month'] == "2016-11", 11, 1))))))))))))     
+  document$intmonth <- ifelse(document$month == "2015-12", 12,
+                               ifelse(document$month == "2016-02", 2,
+                               ifelse(document$month == "2016-01", 1,
+                               ifelse(document$month == "2016-03", 3,
+                               ifelse(document$month == "2016-04", 4,
+                               ifelse(document$month == "2016-05", 5,
+                               ifelse(document$month == "2016-06", 6,
+                               ifelse(document$month == "2016-07", 7,
+                               ifelse(document$month == "2016-08", 8,
+                               ifelse(document$month == "2016-09", 9,
+                               ifelse(document$month == "2016-10", 10,                                      
+                               ifelse(document$month == "2016-11", 11, NA))))))))))))     
                         
                       
   # ---------- DATA CLEANING -----------
@@ -83,12 +81,6 @@ server <- function(input, output, session) {
   document$category <- paste(toupper(substring(document[,c("category")], 1, 1)), substring(document[,c("category")], 2), sep="")
 
   # ---------- DATA PROCESSING ----------
-
-  # choose palette colour
-  pal <- colorFactor(
-    palette = "YlGnBu",
-    domain = document$category
-  )
 
   # render static leaflet map without dynamically-loaded data
   output$map <- renderLeaflet({
@@ -105,7 +97,6 @@ server <- function(input, output, session) {
                    # define static attrbutes of leaflet output
                    leaflet() %>% addProviderTiles("CartoDB.Positron")  %>%
                      fitBounds(-3.008756, 53.32679, -2.818, 53.47497) 
-                   # %>% addLegend("bottomleft", values = document$category, pal = pal)
                  })
   })
   
@@ -121,23 +112,6 @@ server <- function(input, output, session) {
     document[document$intmonth >= input$time[1] & document$intmonth <= input$time[2], ]
   })
   
-  # observe({
-  #   # clearMarkerClusters upon changing slider
-  #   if(nrow(time.document()) == 0) {
-  #     leafletProxy("map", data = react.document()) %>% clearMarkerClusters()
-  #   } else {
-  #     leafletProxy("map", data = react.document()) %>% addCircleMarkers(as.numeric(react.document()$lon),
-  #                                                                       as.numeric(react.document()$lat),
-  #                                                                       group = "Markers",
-  #                                                                       radius = 5,
-  #                                                                       clusterOptions = markerClusterOptions(),
-  #                                                                       popup = paste("<b>Crime:</b> ", document$category, "<br>",
-  #                                                                                     "<b>Date:</b> <i>", document$month, "</i><br>",
-  #                                                                                     "<b>Location:</b> ", document$name, "<br>",
-  #                                                                                     "<b>Outcome:</b> ", document$outcome_status, "<br>"))
-  #   }
-  # })
-  
   # create obserer object to re-execute everytime reactive data input is changed - i.e. slider inputs
   observe({
     # ensure markers are cleared each time observer re-executes to elininate data duplication
@@ -145,15 +119,15 @@ server <- function(input, output, session) {
       leafletProxy("map", data = time.document()) %>% clearMarkerClusters()
     } else {
       leafletProxy("map", data = time.document()) %>% clearMarkerClusters() %>% addCircleMarkers(as.numeric(time.document()$lon),
-                                                                                                 as.numeric(time.document()$lat),
-                                                                                                 group = "Markers",
-                                                                                                 radius = 5,
-                                                                                                 clusterOptions = markerClusterOptions(),
-                                                                                                 # build popup markers on individual crimes
-                                                                                                 popup = paste("<b>Crime:</b> ", document$category, "<br>",
-                                                                                                               "<b>Date:</b> <i>", document$month, "</i><br>",
-                                                                                                               "<b>Location:</b> ", document$name, "<br>",
-                                                                                                               "<b>Outcome:</b> ", document$outcome_status, "<br>"))  
+               as.numeric(time.document()$lat),
+               group = "Markers",
+               radius = 5,
+               clusterOptions = markerClusterOptions(),
+               # build popup markers on individual crimes
+               popup = paste("<b>Crime:</b> ", document$category, "<br>",
+                             "<b>Date:</b> <i>", document$month, "</i><br>",
+                             "<b>Location:</b> ", document$name, "<br>",
+                             "<b>Outcome:</b> ", document$outcome_status, "<br>"))  
     }
   })
   
