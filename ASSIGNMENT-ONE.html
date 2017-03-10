@@ -263,24 +263,23 @@ server &lt;- function(input, output, session) {
   # build lat/lon + date string to send with postrequest
   curl.string &lt;- paste0('poly=',paste0(sprintf('%s,%s',lpool[,2], lpool[,1]), collapse = ':'))
 
-  dates = c(&quot;2015-12&quot;, &quot;2016-01&quot;, &quot;2016-02&quot;, &quot;2016-03&quot;, &quot;2016-04&quot;, &quot;2016-05&quot;, &quot;2016-06&quot;,
-            &quot;2016-07&quot;, &quot;2016-08&quot;, &quot;2016-09&quot;, &quot;2016-10&quot;, &quot;2016-11&quot;)
+  dates = c(&quot;2015-12&quot;, &quot;2016-01&quot;, &quot;2016-02&quot;, &quot;2016-03&quot;, &quot;2016-04&quot;, &quot;2016-05&quot;, &quot;2016-06&quot;, &quot;2016-07&quot;, &quot;2016-08&quot;, &quot;2016-09&quot;, &quot;2016-10&quot;, &quot;2016-11&quot;)
 
   document &lt;- lapply(dates, function(month) {
     # format acceptable packet for http request
     curl.string &lt;- list(poly=c(curl.string), date=c(month))
-    # post custom polygon to police api (post needed as appending curl string to url is too long)
-    r &lt;- httr::POST(&quot;https://data.police.uk/api/crimes-street/all-crime&quot;,
-                    body = curl.string, encode=&quot;multipart&quot;, verbose())
+    # post custom polygon to police api (note: post needed as appending curl string to url is too long)
+    r &lt;- httr::POST(&quot;https://data.police.uk/api/crimes-street/all-crime&quot;, body = curl.string, encode=&quot;multipart&quot;, verbose())
     json &lt;- content(r, &quot;text&quot;)
     # return as data.frame
     jsonlite::fromJSON(txt=json)
   })
   
   # build master data.frame to append data.frame for individual months to
-  master &lt;- data.frame(id=numeric(0), category=character(0), lat=character(0),
-                       lon=character(0), month=character(0), outcome_status=character(0))
+  master &lt;- data.frame(id=numeric(0), category=character(0), lat=character(0), lon=character(0),
+                       month=character(0), outcome_status=character(0))
   
+  # note: we choose not to grow the dataframe in a for loop due to computational cost
   d1 &lt;- data.frame(category=document[[1]]$category,lat=document[[1]]$location$latitude,
                    lon=document[[1]]$location$longitude, id=document[[1]]$id,
                    name=document[[1]]$location$street$name, month=document[[1]]$month,
@@ -297,7 +296,7 @@ server &lt;- function(input, output, session) {
                    outcome_status=document[[3]]$outcome_status$category)
   
   d4 &lt;- data.frame(category=document[[4]]$category,lat=document[[4]]$location$latitude,
-                   lon=document[[4]]$location$longitude, id=document[[4]]$id, 
+                   lon=document[[4]]$location$longitude, id=document[[4]]$id,
                    name=document[[4]]$location$street$name, month=document[[4]]$month,
                    outcome_status=document[[4]]$outcome_status$category)
   
@@ -322,7 +321,7 @@ server &lt;- function(input, output, session) {
                    outcome_status=document[[8]]$outcome_status$category)
   
   d9 &lt;- data.frame(category=document[[9]]$category,lat=document[[9]]$location$latitude,
-                   lon=document[[9]]$location$longitude, id=document[[9]]$id, 
+                   lon=document[[9]]$location$longitude, id=document[[9]]$id,
                    name=document[[9]]$location$street$name, month=document[[9]]$month,
                    outcome_status=document[[9]]$outcome_status$category)
   
@@ -370,7 +369,8 @@ server &lt;- function(input, output, session) {
   document$category &lt;- gsub('-', ' ', document$category)
 
   # Capitalise each word in string for aesthetical plot
-  document$category &lt;- paste(toupper(substring(document[,c(&quot;category&quot;)], 1, 1)), substring(document[,c(&quot;category&quot;)], 2), sep=&quot;&quot;)
+  document$category &lt;- paste(toupper(substring(document[,c(&quot;category&quot;)], 1, 1)),
+                             substring(document[,c(&quot;category&quot;)], 2), sep=&quot;&quot;)
 
   # ---------- DATA PROCESSING ----------
 
@@ -410,8 +410,7 @@ server &lt;- function(input, output, session) {
     if(nrow(time.document()) == 0) {
       leafletProxy(&quot;map&quot;, data = time.document()) %&gt;% clearMarkerClusters()
     } else {
-      leafletProxy(&quot;map&quot;, data = time.document()) %&gt;% clearMarkerClusters() %&gt;%
-        addCircleMarkers(as.numeric(time.document()$lon),
+      leafletProxy(&quot;map&quot;, data = time.document()) %&gt;% clearMarkerClusters() %&gt;% addCircleMarkers(as.numeric(time.document()$lon),
                as.numeric(time.document()$lat),
                group = &quot;Markers&quot;,
                radius = 5,
@@ -427,9 +426,8 @@ server &lt;- function(input, output, session) {
   # line graph showing time series of aggregated crime counts per month
   output$crimeline &lt;- renderPlot({
     # summate crimes per month using reactive data
-    # t &lt;- count(react.document(), month)
-    l &lt;- as.data.frame(table(react.document()$month))
-    ggplot(l, aes(l$Var1, l$Freq, group = 1)) +
+    t &lt;- count(document, month)
+    ggplot(t, aes(month, n, group = 1)) +
       geom_point(colour = '#496D64') +
       geom_line(colour = '#496D64') + theme_bw() +
       geom_smooth(method=&quot;loess&quot;) + labs(x=&quot;Month&quot;, y=&quot;Frequency&quot;) +
@@ -473,8 +471,8 @@ server &lt;- function(input, output, session) {
 
   output$crimetable &lt;- DT::renderDataTable({
     # subset crimes table
-    new.document &lt;- data.frame(document$category, document$lat, document$lon,
-                               document$name, document$outcome_status ,document$month)
+    new.document &lt;- data.frame(document$category, document$lat, document$lon, document$name,
+                               document$outcome_status ,document$month)
     # rename columns
     names(new.document) &lt;- c(&quot;Category&quot;, &quot;Latitude&quot;, &quot;Longitude&quot;, &quot;Location&quot;, &quot;Outcome&quot;, &quot;Month&quot;)
 

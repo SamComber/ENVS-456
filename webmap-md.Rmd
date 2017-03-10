@@ -157,23 +157,24 @@ server <- function(input, output, session) {
   # build lat/lon + date string to send with postrequest
   curl.string <- paste0('poly=',paste0(sprintf('%s,%s',lpool[,2], lpool[,1]), collapse = ':'))
 
-  dates = c("2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06", "2016-07", "2016-08", "2016-09", "2016-10", "2016-11")
+  dates = c("2015-12", "2016-01", "2016-02", "2016-03", "2016-04", "2016-05", "2016-06",
+            "2016-07", "2016-08", "2016-09", "2016-10", "2016-11")
 
   document <- lapply(dates, function(month) {
     # format acceptable packet for http request
     curl.string <- list(poly=c(curl.string), date=c(month))
-    # post custom polygon to police api (note: post needed as appending curl string to url is too long)
-    r <- httr::POST("https://data.police.uk/api/crimes-street/all-crime", body = curl.string, encode="multipart", verbose())
+    # post custom polygon to police api (post needed as appending curl string to url is too long)
+    r <- httr::POST("https://data.police.uk/api/crimes-street/all-crime",
+                    body = curl.string, encode="multipart", verbose())
     json <- content(r, "text")
     # return as data.frame
     jsonlite::fromJSON(txt=json)
   })
   
   # build master data.frame to append data.frame for individual months to
-  master <- data.frame(id=numeric(0), category=character(0), lat=character(0), lon=character(0),
-                       month=character(0), outcome_status=character(0))
+  master <- data.frame(id=numeric(0), category=character(0), lat=character(0),
+                       lon=character(0), month=character(0), outcome_status=character(0))
   
-  # note: we choose not to grow the dataframe in a for loop due to computational cost
   d1 <- data.frame(category=document[[1]]$category,lat=document[[1]]$location$latitude,
                    lon=document[[1]]$location$longitude, id=document[[1]]$id,
                    name=document[[1]]$location$street$name, month=document[[1]]$month,
@@ -190,7 +191,7 @@ server <- function(input, output, session) {
                    outcome_status=document[[3]]$outcome_status$category)
   
   d4 <- data.frame(category=document[[4]]$category,lat=document[[4]]$location$latitude,
-                   lon=document[[4]]$location$longitude, id=document[[4]]$id,
+                   lon=document[[4]]$location$longitude, id=document[[4]]$id, 
                    name=document[[4]]$location$street$name, month=document[[4]]$month,
                    outcome_status=document[[4]]$outcome_status$category)
   
@@ -215,7 +216,7 @@ server <- function(input, output, session) {
                    outcome_status=document[[8]]$outcome_status$category)
   
   d9 <- data.frame(category=document[[9]]$category,lat=document[[9]]$location$latitude,
-                   lon=document[[9]]$location$longitude, id=document[[9]]$id,
+                   lon=document[[9]]$location$longitude, id=document[[9]]$id, 
                    name=document[[9]]$location$street$name, month=document[[9]]$month,
                    outcome_status=document[[9]]$outcome_status$category)
   
@@ -263,8 +264,7 @@ server <- function(input, output, session) {
   document$category <- gsub('-', ' ', document$category)
 
   # Capitalise each word in string for aesthetical plot
-  document$category <- paste(toupper(substring(document[,c("category")], 1, 1)),
-                             substring(document[,c("category")], 2), sep="")
+  document$category <- paste(toupper(substring(document[,c("category")], 1, 1)), substring(document[,c("category")], 2), sep="")
 
   # ---------- DATA PROCESSING ----------
 
@@ -304,7 +304,8 @@ server <- function(input, output, session) {
     if(nrow(time.document()) == 0) {
       leafletProxy("map", data = time.document()) %>% clearMarkerClusters()
     } else {
-      leafletProxy("map", data = time.document()) %>% clearMarkerClusters() %>% addCircleMarkers(as.numeric(time.document()$lon),
+      leafletProxy("map", data = time.document()) %>% clearMarkerClusters() %>%
+        addCircleMarkers(as.numeric(time.document()$lon),
                as.numeric(time.document()$lat),
                group = "Markers",
                radius = 5,
@@ -320,8 +321,9 @@ server <- function(input, output, session) {
   # line graph showing time series of aggregated crime counts per month
   output$crimeline <- renderPlot({
     # summate crimes per month using reactive data
-    t <- count(document, month)
-    ggplot(t, aes(month, n, group = 1)) +
+    # t <- count(react.document(), month)
+    l <- as.data.frame(table(react.document()$month))
+    ggplot(l, aes(l$Var1, l$Freq, group = 1)) +
       geom_point(colour = '#496D64') +
       geom_line(colour = '#496D64') + theme_bw() +
       geom_smooth(method="loess") + labs(x="Month", y="Frequency") +
@@ -365,8 +367,8 @@ server <- function(input, output, session) {
 
   output$crimetable <- DT::renderDataTable({
     # subset crimes table
-    new.document <- data.frame(document$category, document$lat, document$lon, document$name,
-                               document$outcome_status ,document$month)
+    new.document <- data.frame(document$category, document$lat, document$lon,
+                               document$name, document$outcome_status ,document$month)
     # rename columns
     names(new.document) <- c("Category", "Latitude", "Longitude", "Location", "Outcome", "Month")
 
