@@ -155,13 +155,13 @@ server <- function(input, output, session) {
 
   # render dbscan using reactive data
   output$dbscan <- renderPlot({
-    x <- data.frame(lat=as.numeric(react.document()$lat), lon=as.numeric(react.document()$lon))
+    x <- data.frame(lon=as.numeric(as.character(react.document()$lon)), lat=as.numeric(as.character(react.document()$lat)))
     res.db <- dbscan::dbscan(x, 0.0015, 5)
     plot(res.db, x,
          frame = FALSE,
          main="",
-         xlab="Latitude",
-         ylab="Longitude")
+         xlab="Longitude",
+         ylab="Latitude")
   })
   
   # create bar chart showing crime frequencies per category

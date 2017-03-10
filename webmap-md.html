@@ -122,18 +122,25 @@ $(document).ready(function () {
 </div>
 
 
+<h3>
+Web architecture
+</h3>
 <p>This R markdown file details the workflow of the design process for a web application hosted on the <i>shinyapps</i> server (URL: <a href="https://gds-funtimes.shinyapps.io/webmap" class="uri">https://gds-funtimes.shinyapps.io/webmap</a>). The Github repository can be found at <a href="https://github.com/SamComber/ENVS-456" class="uri">https://github.com/SamComber/ENVS-456</a>. Firstly, Shiny provides the overarching web infrastructure for projecting the spatio-temporal geography of crime densities across Liverpool. Shiny uses a single-page application architecture which, in turn, uses AJAX for creating fluid user experiences without the need for constant page reloads. In our case, this is important because every page reload requires a HTTP request for the 12 month window of crime occurences client-side from the Police.uk API - given a web server, an alternative would be a server-side cache of monthly crime data to decrease loading times of the application. In any case, the client-side call for 12 months of data accounts for the 1-2 minute loading time of the application.</p>
-<p>As Shiny uses a reactive programming model, the user is able to interact through the browser interface to explore how clusters of crime occurences fluctuate over time. To achieve this we use Leaflet as the presentation layer, projecting the geospatial data with Leaflet’s marker clusters to decrease the overhead involved with projecting 45,000+ individual crimes. We use Shiny’s event-driven observers for providing interactivity. Here, changes observed when a user interacts with the dashboard - i.e. by dragging the month slider to the selected date range - causes the marker clusters to rerender by firstly removing the existing marker clusters and then redrawing them according to the data subsetting rules applied by the user - as the clusterer is only efficient up to 50,000 markers, we observe some latency when using filtering our dataset. By clicking or zooming on the clusters, finer granularity can be observed until individual markers associated with each cluster enter the browser’s viewport. Individual markers are clickable and on popup provide: a crime description, date of occurence, location and outcome status if available.</p>
+<p>As Shiny uses a reactive programming model, the user is able to interact through the browser interface to explore how clusters of crime occurences fluctuate over time. To obtain crimes, we download the geojson boundaries for Liverpool, store them in a temporary folder, and construct a custom polygon which we send to the Police API. Fortunately, our custom area does not contain more than 10,000 crimes per month, as otherwise the API would return a 503 status code. To explore the spatial distribution of crimes, we use Leaflet as the presentation layer to project the geospatial data with Leaflet’s marker clusters to decrease the overhead involved with projecting 45,000+ individual crimes. We use Shiny’s event-driven observers for providing interactivity. Here, changes observed when a user interacts with the dashboard - i.e. by dragging the month slider to the selected date range - causes the marker clusters to rerender by firstly removing the existing marker clusters and then redrawing them according to the data subsetting rules applied by the user - as the clusterer is only efficient up to 50,000 markers, we observe some latency when using filtering our dataset. By clicking or zooming on the clusters, finer granularity can be observed until individual markers associated with each cluster enter the browser’s viewport. Individual markers are clickable and on popup provide: a crime description, date of occurence, location and outcome status if available. Moreover, when a user mouses over the marker clusters, a display of the spatial expanse of the cluster polygon is revealed, allowing users to deduce boundaries for areas of high crime rates.</p>
 <p>To complement the marker cluster functionality provided by Leaflet, we apply the DBSCAN density-based clustering algorithm for grouping nearby neighbour points in space. The use of reactive expressions means DBSCAN is updated when the user toggles the sample size slider. Next, we develop a data explorer tab which uses the <i>DT</i> package for tabulating R data objects such as matrices and data frames. DataTables in Shiny use a server-side processing model as the data is processed through R. This functionality tabulates a tidied dataset of the crime data, allowing the user to query the datatable by location, outcome status and more.</p>
 <p>Finally, on the front-end, the <i>flatly</i> theme from the <i>shinythemes</i> package is used to style the application. Yet, further customisation is introduced with a custom CSS script (appended to end of markdown document) to fine-tune the aesthetical properties of the dashboard in the user’s viewport.</p>
+<h3>
+Discussion
+</h3>
+<p>The resulting Shiny application displays several interesting patterns relating to the spatio-temporal distribution of crimes in Liverpool. In terms of spatial patterning, we observe the largest cluster of crimes in the city centre area stretching from Canning Dock to Mount Pleasent. Outside of this, we observe clusters of high crime incidents in the North-East metropolitan triangle of Fazakerley, Croxteth and West Derby. By contrast, we observe the lowest clustering of crimes in the South-East of Liverpool in suburban areas such as Halewood, Woolton and Gateacre. When we apply the time dimension by toggling the month slider, we subset the data and are able to explore how the spatial clustering of crime changes temporally. To complement this, the loess line of the time-series plot shows a gradual increase in the number of crime incidents from 2015-12 to 2016-11.</p>
+<p>Finally, the bar chart in the bottom-right column displays crime frequencies by category. Overall, we observe anti social behaviour as the most prolific street-level crime followed by violent crime. These rankings do not seem to fluctuate much when toggling the sample size slider. An interesting extension might be to allow further interactivity by permitting a user to reactively filter crimes displayed by category using the HTML input checkbox object.</p>
 <!-- 
-x) data pulled from API for 12 months, month slider to map spatio-temporal change
-x) data explorer AJAX
-1) bootstrap theme. (DONE)
-2) tab panels for SPA
-3) DBSCAN
-4) markerclusters + labels
-5) leaflet proxy observers + reactive data + clearmarkers each time input changes to prevent duplicated spatial data on map
+
+1) frequency of types of crime in bar chart
+2) time series of crimes increasing including loess line to capture overall trend
+3) dbscan density-based clustering 
+4) marker cluster observes patterning of crime in city centre
+
 -->
 <p><b>ui.R</b></p>
 <pre class="r"><code>library(shiny)
@@ -147,71 +154,90 @@ library(RColorBrewer)
 
 # use shinythemes
 ui &lt;- navbarPage(&quot;Crime Mapping in Liverpool&quot;, theme = shinytheme(&quot;flatly&quot;), id=&quot;nav&quot;, 
-                 
-           tabPanel(&quot;Interactive map&quot;,
-                    div(class=&quot;outer&quot;,
-                        
-                        tags$style(type = &quot;text/css&quot;, &quot;#map {height: calc(100vh - 80px) !important;}&quot;),
-                        tags$head(
-                          includeCSS(&quot;https://fonts.googleapis.com/css?family=Montserrat&quot;),
-                          includeCSS(&quot;www/styles.css&quot;)
-                        ),
-
-                        leafletOutput(&quot;map&quot;, width = &quot;100%&quot;),
-                        
-                        absolutePanel(id=&quot;controls&quot;, class = &quot;panel panel-default&quot;, fixed = TRUE,
-                          draggable = TRUE, top = 60, left = &quot;auto&quot;, right = 20, bottom = &quot;auto&quot;,
-                          width = 330, height = &quot;auto&quot;,
-                          
-                          h2(&quot;Data controller&quot;),
-                          sliderInput(&quot;time&quot;, &quot;Month Slider&quot;, min = 1, max = 12, value = c(1,12), step=1, pre = &quot;Month: &quot;),
-                          plotOutput(&quot;crimeline&quot;, height = 200),
-                          sliderInput(&quot;samplesize&quot;, &quot;Sample Size&quot;, min = 10000, max=45000, value = 10000, step = 10000),
-                          p(class=&quot;text-muted&quot;, &quot;Note: pulling data from the Police API may take a few minutes...&quot;)
-                          )
-
-                        ),
-                    hr(),
-                    fluidRow(class=&quot;graphs&quot;,
-                      
-                      column(4,
-                        h4(&quot;KNN-distance plot for optimal epsilon value - k = 10&quot;),
-                        plotOutput(&quot;dbopt&quot;)
-                      ),
-                      
-                      column(4,
-                        h4(&quot;DBSCAN - epsilson = 0.002, min points = 10&quot;),
-                        plotOutput(&quot;dbscan&quot;)
-                      ),
-                      column(4,
-                        h4(&quot;Crime category frequencies&quot;),
-                        plotOutput(&quot;crimebar&quot;)
-                      ),
-                      hr()
-                    )
-                    
-                    
-            ),
-           
-           tabPanel(&quot;Data explorer&quot;, 
-                    p(&quot;The data explorer tab displays the tabulation of crime occurences in Liverpool. Search functionality allows
-                      a user to filter a location by road name to count the number of crimes.&quot;),
-                    DT::dataTableOutput(&quot;crimetable&quot;),
-                    hr()
-           ),
-           tabPanel(&quot;About&quot;,
-                    p(&quot;This shiny app is the product of a class project for ENVS456 - Web Mapping and Analysis designed by Sam Comber. Cluster markers provided
-                      by the Leaflet library are used to lower the overhead of plotting 45,000+ individual crime points. By zooming into or clicking each cluster,
-                      the user is able to visualise the geography of crime density across Liverpool in their viewport. Crime clusters can be expanded until their
-                      constituent crimes are shown individually (clicking individual crimes shows a popup detailing descriptive information). As there is no server-side
-                      backend for storing crimes, each page refresh requires a new HTTP request to the Police API which significantly enhances the client-side loadtime of the app.
-                      For this reason, we use a single-page application (SPA) design that uses AJAX to eliminate the need for page refreshes. The data explorer tab tabulates the
-                      tidied dataset, allowing the user to search by location, outcome status and more.&quot;),
-                    p(&quot;Moreover, by using the interactive sliders, the user is able to observe the spatio-temporal variation in crime density.
-                      Note: the sample size slider does not change the number of crime points visualised on the map. The Github repository for the project
-                      can be found &quot;, a(&quot;here&quot;, href=&quot;https://github.com/SamComber/ENVS-456&quot;), &quot; and the R markdown file that explains the design process &quot;, a(&quot;here.&quot;, href=&quot;https://github.com/SamComber/ENVS-456/blob/master/webmap-md.html&quot;))
-           )
-           
+  
+  # create tab panel for single-page application design
+  tabPanel(&quot;Interactive map&quot;,
+    div(class=&quot;outer&quot;,
+      # expand map dimensions to fit screen  
+      tags$style(type = &quot;text/css&quot;, &quot;#map {height: calc(100vh - 80px) !important;}&quot;),
+        tags$head(
+        # include custom google font
+        includeCSS(&quot;https://fonts.googleapis.com/css?family=Montserrat&quot;),
+        # include custom css script
+        includeCSS(&quot;www/styles.css&quot;)
+        ),
+    
+      # create div element for map
+      leafletOutput(&quot;map&quot;, width = &quot;100%&quot;),
+    
+      # create movable 'data controller', allow it to be draggable
+      absolutePanel(id=&quot;controls&quot;, class = &quot;panel panel-default&quot;, fixed = TRUE,
+        draggable = TRUE, top = 60, left = &quot;auto&quot;, right = 20, bottom = &quot;auto&quot;,
+        width = 330, height = &quot;auto&quot;,
+        h2(&quot;Data controller&quot;),
+        # define month slider for exploring temporal variation in crime
+        sliderInput(&quot;time&quot;, &quot;Month Slider&quot;, min = 1, max = 12, value = c(1,12),
+                    step=1, pre = &quot;Month: &quot;),
+        # plot time-series of crime incidents
+        plotOutput(&quot;crimeline&quot;, height = 200),
+        # sample size slider
+        sliderInput(&quot;samplesize&quot;, &quot;Sample Size&quot;, min = 10000, max=45000,
+                    value = 10000, step = 10000),
+        p(class=&quot;text-muted&quot;, &quot;Note: pulling data from the Police API may take a few minutes...&quot;)
+      )
+    ),
+    hr(),
+    # bootstrap uses a 12 column grid so we use 4 columns per plot 
+    # as 12 is divisible by 4
+    fluidRow(class=&quot;graphs&quot;,
+  
+      column(4,
+      h4(&quot;KNN-distance plot for optimal epsilon value - k = 10&quot;),
+      plotOutput(&quot;dbopt&quot;)
+      ),
+      
+      column(4,
+      h4(&quot;DBSCAN - epsilson = 0.002, min points = 10&quot;),
+      plotOutput(&quot;dbscan&quot;)
+      ),
+      column(4,
+      h4(&quot;Crime category frequencies&quot;),
+      plotOutput(&quot;crimebar&quot;)
+      ),
+      hr()
+    )
+  ),
+  
+  # define data explorer tab for exploring tidied data
+  tabPanel(&quot;Data explorer&quot;, 
+    p(&quot;The data explorer tab displays the tabulation of crime occurences in Liverpool.
+      Search functionality allows a user to filter a location by road name to count the
+      number of crimes.&quot;),
+    # render data table in ui
+    DT::dataTableOutput(&quot;crimetable&quot;),
+    hr()
+  ),
+  # define about section to explain purpose of project
+  tabPanel(&quot;About&quot;,
+    p(&quot;This shiny app is the product of a class project for ENVS456 - Web Mapping and Analysis
+      designed by Sam Comber. Cluster markers provided by the Leaflet library are used to lower
+      the overhead of plotting 45,000+ individual crime points. By zooming into or clicking
+      each cluster, the user is able to visualise the geography of crime density across
+      Liverpool in their viewport. Crime clusters can be expanded until their constituent
+      crimes are shown individually (clicking individual crimes shows a popup detailing
+      descriptive information). As there is no server-side backend for storing crimes, each
+      page refresh requires a new HTTP request to the Police API which significantly enhances
+      the client-side loadtime of the app. For this reason, we use a single-page application (SPA)
+      design that uses AJAX to eliminate the need for page refreshes. The data explorer tab
+      tabulates the tidied dataset, allowing the user to search by location, outcome
+      status and more.&quot;),
+    p(&quot;Moreover, by using the interactive sliders, the user is able to observe the spatio-temporal
+      variation in crime density. Note: the sample size slider does not change the number of
+      crime points visualised on the map. The Github repository for the project can be found
+      &quot;, a(&quot;here&quot;, href=&quot;https://github.com/SamComber/ENVS-456&quot;), &quot; and the R markdown file
+      that explains the design process &quot;,
+      a(&quot;here.&quot;, href=&quot;https://github.com/SamComber/ENVS-456/blob/master/webmap-md.html&quot;))
+  )
 )</code></pre>
 <p><b>server.R</b></p>
 <pre class="r"><code>library(shiny)
@@ -254,19 +280,69 @@ server &lt;- function(input, output, session) {
   })
   
   # build master data.frame to append data.frame for individual months to
-  master &lt;- data.frame(id=numeric(0), category=character(0), lat=character(0), lon=character(0), month=character(0), outcome_status=character(0))
-  d1 &lt;- data.frame(category=document[[1]]$category,lat=document[[1]]$location$latitude, lon=document[[1]]$location$longitude, id=document[[1]]$id, name=document[[1]]$location$street$name, month=document[[1]]$month, outcome_status=document[[1]]$outcome_status$category)
-  d2 &lt;- data.frame(category=document[[2]]$category,lat=document[[2]]$location$latitude, lon=document[[2]]$location$longitude, id=document[[2]]$id, name=document[[2]]$location$street$name, month=document[[2]]$month, outcome_status=document[[2]]$outcome_status$category)
-  d3 &lt;- data.frame(category=document[[3]]$category,lat=document[[3]]$location$latitude, lon=document[[3]]$location$longitude, id=document[[3]]$id, name=document[[3]]$location$street$name, month=document[[3]]$month, outcome_status=document[[3]]$outcome_status$category)
-  d4 &lt;- data.frame(category=document[[4]]$category,lat=document[[4]]$location$latitude, lon=document[[4]]$location$longitude, id=document[[4]]$id, name=document[[4]]$location$street$name, month=document[[4]]$month, outcome_status=document[[4]]$outcome_status$category)
-  d5 &lt;- data.frame(category=document[[5]]$category,lat=document[[5]]$location$latitude, lon=document[[5]]$location$longitude, id=document[[5]]$id, name=document[[5]]$location$street$name, month=document[[5]]$month, outcome_status=document[[5]]$outcome_status$category)
-  d6 &lt;- data.frame(category=document[[6]]$category,lat=document[[6]]$location$latitude, lon=document[[6]]$location$longitude, id=document[[6]]$id, name=document[[6]]$location$street$name, month=document[[6]]$month, outcome_status=document[[6]]$outcome_status$category)
-  d7 &lt;- data.frame(category=document[[7]]$category,lat=document[[7]]$location$latitude, lon=document[[7]]$location$longitude, id=document[[7]]$id, name=document[[7]]$location$street$name, month=document[[7]]$month, outcome_status=document[[7]]$outcome_status$category)
-  d8 &lt;- data.frame(category=document[[8]]$category,lat=document[[8]]$location$latitude, lon=document[[8]]$location$longitude, id=document[[8]]$id, name=document[[8]]$location$street$name, month=document[[8]]$month, outcome_status=document[[8]]$outcome_status$category)
-  d9 &lt;- data.frame(category=document[[9]]$category,lat=document[[9]]$location$latitude, lon=document[[9]]$location$longitude, id=document[[9]]$id, name=document[[9]]$location$street$name, month=document[[9]]$month, outcome_status=document[[9]]$outcome_status$category)
-  d10 &lt;- data.frame(category=document[[10]]$category,lat=document[[10]]$location$latitude, lon=document[[10]]$location$longitude, id=document[[10]]$id, name=document[[10]]$location$street$name, month=document[[10]]$month, outcome_status=document[[10]]$outcome_status$category)
-  d11 &lt;- data.frame(category=document[[11]]$category,lat=document[[11]]$location$latitude, lon=document[[11]]$location$longitude, id=document[[11]]$id, name=document[[11]]$location$street$name, month=document[[11]]$month, outcome_status=document[[11]]$outcome_status$category)
-  d12 &lt;- data.frame(category=document[[12]]$category,lat=document[[12]]$location$latitude, lon=document[[12]]$location$longitude, id=document[[12]]$id, name=document[[12]]$location$street$name, month=document[[12]]$month, outcome_status=document[[12]]$outcome_status$category)
+  master &lt;- data.frame(id=numeric(0), category=character(0), lat=character(0), lon=character(0),
+                       month=character(0), outcome_status=character(0))
+  
+  # note: we choose not to grow the dataframe in a for loop due to computational cost
+  d1 &lt;- data.frame(category=document[[1]]$category,lat=document[[1]]$location$latitude,
+                   lon=document[[1]]$location$longitude, id=document[[1]]$id,
+                   name=document[[1]]$location$street$name, month=document[[1]]$month,
+                   outcome_status=document[[1]]$outcome_status$category)
+  
+  d2 &lt;- data.frame(category=document[[2]]$category,lat=document[[2]]$location$latitude,
+                   lon=document[[2]]$location$longitude, id=document[[2]]$id,
+                   name=document[[2]]$location$street$name, month=document[[2]]$month,
+                   outcome_status=document[[2]]$outcome_status$category)
+  
+  d3 &lt;- data.frame(category=document[[3]]$category,lat=document[[3]]$location$latitude,
+                   lon=document[[3]]$location$longitude, id=document[[3]]$id,
+                   name=document[[3]]$location$street$name, month=document[[3]]$month,
+                   outcome_status=document[[3]]$outcome_status$category)
+  
+  d4 &lt;- data.frame(category=document[[4]]$category,lat=document[[4]]$location$latitude,
+                   lon=document[[4]]$location$longitude, id=document[[4]]$id,
+                   name=document[[4]]$location$street$name, month=document[[4]]$month,
+                   outcome_status=document[[4]]$outcome_status$category)
+  
+  d5 &lt;- data.frame(category=document[[5]]$category,lat=document[[5]]$location$latitude,
+                   lon=document[[5]]$location$longitude, id=document[[5]]$id,
+                   name=document[[5]]$location$street$name, month=document[[5]]$month,
+                   outcome_status=document[[5]]$outcome_status$category)
+  
+  d6 &lt;- data.frame(category=document[[6]]$category,lat=document[[6]]$location$latitude,
+                   lon=document[[6]]$location$longitude, id=document[[6]]$id,
+                   name=document[[6]]$location$street$name, month=document[[6]]$month,
+                   outcome_status=document[[6]]$outcome_status$category)
+  
+  d7 &lt;- data.frame(category=document[[7]]$category,lat=document[[7]]$location$latitude,
+                   lon=document[[7]]$location$longitude, id=document[[7]]$id,
+                   name=document[[7]]$location$street$name, month=document[[7]]$month,
+                   outcome_status=document[[7]]$outcome_status$category)
+  
+  d8 &lt;- data.frame(category=document[[8]]$category,lat=document[[8]]$location$latitude,
+                   lon=document[[8]]$location$longitude, id=document[[8]]$id,
+                   name=document[[8]]$location$street$name, month=document[[8]]$month,
+                   outcome_status=document[[8]]$outcome_status$category)
+  
+  d9 &lt;- data.frame(category=document[[9]]$category,lat=document[[9]]$location$latitude,
+                   lon=document[[9]]$location$longitude, id=document[[9]]$id,
+                   name=document[[9]]$location$street$name, month=document[[9]]$month,
+                   outcome_status=document[[9]]$outcome_status$category)
+  
+  d10 &lt;- data.frame(category=document[[10]]$category,lat=document[[10]]$location$latitude,
+                    lon=document[[10]]$location$longitude, id=document[[10]]$id,
+                    name=document[[10]]$location$street$name, month=document[[10]]$month,
+                    outcome_status=document[[10]]$outcome_status$category)
+  
+  d11 &lt;- data.frame(category=document[[11]]$category,lat=document[[11]]$location$latitude,
+                    lon=document[[11]]$location$longitude, id=document[[11]]$id,
+                    name=document[[11]]$location$street$name, month=document[[11]]$month,
+                    outcome_status=document[[11]]$outcome_status$category)
+  
+  d12 &lt;- data.frame(category=document[[12]]$category,lat=document[[12]]$location$latitude,
+                    lon=document[[12]]$location$longitude, id=document[[12]]$id,
+                    name=document[[12]]$location$street$name, month=document[[12]]$month,
+                    outcome_status=document[[12]]$outcome_status$category)
 
   # rbind each month to master data.frame
   document &lt;- rbind(master, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
@@ -277,17 +353,17 @@ server &lt;- function(input, output, session) {
   document &lt;- rapply(document, as.character, classes=&quot;factor&quot;, how=&quot;replace&quot;)
   # recode month to integer value for sliderInput functionality
   document$intmonth &lt;- ifelse(document$month == &quot;2015-12&quot;, 12,
-                               ifelse(document$month == &quot;2016-02&quot;, 2,
-                               ifelse(document$month == &quot;2016-01&quot;, 1,
-                               ifelse(document$month == &quot;2016-03&quot;, 3,
-                               ifelse(document$month == &quot;2016-04&quot;, 4,
-                               ifelse(document$month == &quot;2016-05&quot;, 5,
-                               ifelse(document$month == &quot;2016-06&quot;, 6,
-                               ifelse(document$month == &quot;2016-07&quot;, 7,
-                               ifelse(document$month == &quot;2016-08&quot;, 8,
-                               ifelse(document$month == &quot;2016-09&quot;, 9,
-                               ifelse(document$month == &quot;2016-10&quot;, 10,                                      
-                               ifelse(document$month == &quot;2016-11&quot;, 11, NA))))))))))))     
+                       ifelse(document$month == &quot;2016-02&quot;, 2,
+                       ifelse(document$month == &quot;2016-01&quot;, 1,
+                       ifelse(document$month == &quot;2016-03&quot;, 3,
+                       ifelse(document$month == &quot;2016-04&quot;, 4,
+                       ifelse(document$month == &quot;2016-05&quot;, 5,
+                       ifelse(document$month == &quot;2016-06&quot;, 6,
+                       ifelse(document$month == &quot;2016-07&quot;, 7,
+                       ifelse(document$month == &quot;2016-08&quot;, 8,
+                       ifelse(document$month == &quot;2016-09&quot;, 9,
+                       ifelse(document$month == &quot;2016-10&quot;, 10,                                      
+                       ifelse(document$month == &quot;2016-11&quot;, 11, NA))))))))))))     
   
   
                       
@@ -297,7 +373,8 @@ server &lt;- function(input, output, session) {
   document$category &lt;- gsub('-', ' ', document$category)
 
   # Capitalise each word in string for aesthetical plot
-  document$category &lt;- paste(toupper(substring(document[,c(&quot;category&quot;)], 1, 1)), substring(document[,c(&quot;category&quot;)], 2), sep=&quot;&quot;)
+  document$category &lt;- paste(toupper(substring(document[,c(&quot;category&quot;)], 1, 1)),
+                             substring(document[,c(&quot;category&quot;)], 2), sep=&quot;&quot;)
 
   # ---------- DATA PROCESSING ----------
 
@@ -397,7 +474,8 @@ server &lt;- function(input, output, session) {
 
   output$crimetable &lt;- DT::renderDataTable({
     # subset crimes table
-    new.document &lt;- data.frame(document$category, document$lat, document$lon, document$name, document$outcome_status ,document$month)
+    new.document &lt;- data.frame(document$category, document$lat, document$lon, document$name,
+                               document$outcome_status ,document$month)
     # rename columns
     names(new.document) &lt;- c(&quot;Category&quot;, &quot;Latitude&quot;, &quot;Longitude&quot;, &quot;Location&quot;, &quot;Outcome&quot;, &quot;Month&quot;)
 
