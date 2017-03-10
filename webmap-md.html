@@ -132,7 +132,7 @@ Web architecture
 <h3>
 Discussion
 </h3>
-<p>The resulting Shiny application displays several interesting patterns relating to the spatio-temporal distribution of crimes in Liverpool. In terms of spatial patterning, we observe the largest cluster of crimes in the city centre area stretching from Canning Dock to Mount Pleasent. Outside of this, we observe clusters of high crime incidents in the North-East metropolitan triangle of Fazakerley, Croxteth and West Derby. By contrast, we observe the lowest clustering of crimes in the South-East of Liverpool in suburban areas such as Halewood, Woolton and Gateacre. When we apply the time dimension by toggling the month slider, we subset the data and are able to explore how the spatial clustering of crime changes temporally. To complement this, the loess line of the time-series plot shows a gradual increase in the number of crime incidents from 2015-12 to 2016-11.</p>
+<p>The resulting Shiny application displays several interesting patterns relating to the spatio-temporal distribution of crimes in Liverpool. In terms of spatial patterning, we observe the largest cluster of crimes in the city centre area stretching from Canning Dock to Mount Pleasent. Outside of this, we observe clusters of high crime incidents in the North-East metropolitan triangle of Fazakerley, Croxteth and West Derby. A third cluster can also be observed constituting the areas of Kensington, Wavertree and Old Swan. By contrast, we observe the lowest clustering of crimes in the South-East of Liverpool in suburban areas such as Halewood, Woolton and Gateacre. Our density-based DBSCAN plot confirms these observations, with a larger cluster of crimes obsrved around the city centre which expands as one increases the sample size using the slider. Similarly, at 45,000 crimes, we can observe the distinct crime cluster of Kensington, Wavertree and Old Swan in the centre of the plot. When we apply the time dimension by toggling the month slider, we subset the data and are able to explore how the spatial clustering of crime changes temporally. To complement this, the loess line of the time-series plot shows a gradual increase in the number of crime incidents from 2015-12 to 2016-11.</p>
 <p>Finally, the bar chart in the bottom-right column displays crime frequencies by category. Overall, we observe anti social behaviour as the most prolific street-level crime followed by violent crime. These rankings do not seem to fluctuate much when toggling the sample size slider. An interesting extension might be to allow further interactivity by permitting a user to reactively filter crimes displayed by category using the HTML input checkbox object.</p>
 <!-- 
 
@@ -447,13 +447,13 @@ server &lt;- function(input, output, session) {
 
   # render dbscan using reactive data
   output$dbscan &lt;- renderPlot({
-    x &lt;- data.frame(lat=as.numeric(react.document()$lat), lon=as.numeric(react.document()$lon))
+    x &lt;- data.frame(lon=as.numeric(as.character(react.document()$lon)), lat=as.numeric(as.character(react.document()$lat)))
     res.db &lt;- dbscan::dbscan(x, 0.0015, 5)
     plot(res.db, x,
          frame = FALSE,
          main=&quot;&quot;,
-         xlab=&quot;Latitude&quot;,
-         ylab=&quot;Longitude&quot;)
+         xlab=&quot;Longitude&quot;,
+         ylab=&quot;Latitude&quot;)
   })
   
   # create bar chart showing crime frequencies per category
