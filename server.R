@@ -55,7 +55,7 @@ server <- function(input, output, session) {
   # rbind each month to master data.frame
   document <- rbind(master, d1, d2, d3, d4, d5, d6, d7, d8, d9, d10, d11, d12)
   
-  document <- document[sample(nrow(document), 45000),]
+  document <- document[sample(nrow(document), 20000),]
   
   # fix bug where columns are converted to factors. Set as chr class
   document <- rapply(document, as.character, classes="factor", how="replace")
@@ -112,6 +112,7 @@ server <- function(input, output, session) {
   
   # reactively choose crime data to show based on date range chosen by input slider
   time.document <- reactive({
+    document <- react.document()
     document[document$intmonth >= input$time[1] & document$intmonth <= input$time[2], ]
   })
   

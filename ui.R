@@ -16,6 +16,8 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                           div(class="outer",
                               # expand map dimensions to fit screen  
                               tags$style(type = "text/css", "#map {height: calc(100vh - 80px) !important;}"),
+                              tags$style(HTML("#map {width: 100% !important;}")),
+                              
                               tags$head(
                                 # include custom google font
                                 includeCSS("https://fonts.googleapis.com/css?family=Montserrat"),
@@ -37,7 +39,7 @@ ui <- navbarPage("Crime Mapping in Liverpool", theme = shinytheme("flatly"), id=
                                             # plot time-series of crime incidents
                                             plotOutput("crimeline", height = 200),
                                             # sample size slider
-                                            sliderInput("samplesize", "Sample Size", min = 10000, max=45000,
+                                            sliderInput("samplesize", "Sample Size", min = 5000, max=20000,
                                                         value = 10000, step = 10000),
                                             p(class="text-muted", "Note: pulling data from the Police API may take a few minutes...")
                               )
